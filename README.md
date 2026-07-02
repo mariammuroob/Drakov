@@ -5,7 +5,7 @@ Tailwind CSS, and a server-side Supabase connectivity check.
 
 ## Prerequisites
 
-- Node.js 18.17 or newer
+- Node.js 20 or newer
 - npm
 - A Supabase project
 
@@ -16,10 +16,12 @@ Tailwind CSS, and a server-side Supabase connectivity check.
    `supabase/migrations/20260630000000_create_ping_function.sql`. This creates a
    read-only `ping()` function that returns the current Postgres server time.
 3. Run `supabase/migrations/20260702000000_create_core_schema.sql`.
-4. In **Authentication > Sign In / Providers > Anonymous**, enable anonymous
+4. Run the remaining migrations in timestamp order. The action-engine migration
+   adds atomic, server-only execution and stores agent reasoning on every event.
+5. In **Authentication > Sign In / Providers > Anonymous**, enable anonymous
    sign-ins. The app silently creates an anonymous session for first-time visitors.
-5. Copy `.env.example` to `.env.local`.
-6. Find the project URL and anon key under **Project Settings > API**, then set:
+6. Copy `.env.example` to `.env.local`.
+7. Find the project URL and API keys under **Project Settings > API**, then set:
 
    ```dotenv
    SUPABASE_URL=https://your-project.supabase.co
@@ -45,6 +47,10 @@ shown on the page.
 Visit [http://localhost:3000/launch](http://localhost:3000/launch) to register an
 agent. The API derives `agents.owner_id` from the authenticated anonymous user;
 the browser cannot supply or override ownership.
+
+Visit [http://localhost:3000/test-agent](http://localhost:3000/test-agent) to call
+an endpoint. Enable **Apply the parsed action to the database** and provide an
+agent you own to run the action through the transactional action engine.
 
 ## Verification
 

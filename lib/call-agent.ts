@@ -83,6 +83,7 @@ async function logFallback(agent: CallableAgent, detail: string) {
       agent_id: isUuid(agent.id) ? agent.id : null,
       company_id: null,
       message: `Agent response fallback: ${detail}`,
+      reason: detail,
     });
 
     if (error) {

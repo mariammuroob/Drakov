@@ -1,9 +1,13 @@
 import { callAgentDetailed } from "@/lib/call-agent";
+import { executeAgentAction } from "@/lib/execute-agent-action";
+import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { NextResponse } from "next/server";
 
 type TestAgentRequest = {
   endpoint_url?: unknown;
   gameState?: unknown;
+  agent_id?: unknown;
+  execute?: unknown;
 };
 
 function isHttpUrl(value: string) {
@@ -34,10 +38,49 @@ export async function POST(request: Request) {
     );
   }
 
+  if (input.execute === true) {
+    if (typeof input.agent_id !== "string" || !input.agent_id.trim()) {
+      return NextResponse.json({ error: "Agent ID is required to execute an action." }, { status: 400 });
+    }
+
+    const sessionClient = createServerSupabaseClient();
+    const { data: { user } } = await sessionClient.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "An authenticated session is required." }, { status: 401 });
+    }
+
+    const { data: ownedAgent } = await sessionClient
+      .from("agents")
+      .select("id")
+      .eq("id", input.agent_id.trim())
+      .eq("owner_id", user.id)
+      .maybeSingle();
+    if (!ownedAgent) {
+      return NextResponse.json({ error: "You do not own this agent." }, { status: 403 });
+    }
+  }
+
+  const agentId = input.execute === true ? (input.agent_id as string).trim() : undefined;
   const result = await callAgentDetailed(
-    { endpoint_url: endpointUrl },
+    { endpoint_url: endpointUrl, id: agentId },
     input.gameState,
   );
+
+  if (input.execute === true && agentId) {
+    try {
+      const execution = await executeAgentAction(agentId, result.parsedAction);
+      return NextResponse.json({ ...result, execution });
+    } catch (error) {
+      return NextResponse.json(
+        {
+          ...result,
+          executionError:
+            error instanceof Error ? error.message : "Action execution failed.",
+        },
+        { status: 422 },
+      );
+    }
+  }
 
   return NextResponse.json(result);
 }
