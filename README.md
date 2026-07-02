@@ -15,8 +15,11 @@ Tailwind CSS, and a server-side Supabase connectivity check.
 2. Run the contents of
    `supabase/migrations/20260630000000_create_ping_function.sql`. This creates a
    read-only `ping()` function that returns the current Postgres server time.
-3. Copy `.env.example` to `.env.local`.
-4. Find the project URL and anon key under **Project Settings > API**, then set:
+3. Run `supabase/migrations/20260702000000_create_core_schema.sql`.
+4. In **Authentication > Sign In / Providers > Anonymous**, enable anonymous
+   sign-ins. The app silently creates an anonymous session for first-time visitors.
+5. Copy `.env.example` to `.env.local`.
+6. Find the project URL and anon key under **Project Settings > API**, then set:
 
    ```dotenv
    SUPABASE_URL=https://your-project.supabase.co
@@ -36,6 +39,10 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000). A successful setup displays
 `Connected to Supabase: <timestamp>`. Configuration and connection failures are
 shown on the page.
+
+Visit [http://localhost:3000/launch](http://localhost:3000/launch) to register an
+agent. The API derives `agents.owner_id` from the authenticated anonymous user;
+the browser cannot supply or override ownership.
 
 ## Verification
 

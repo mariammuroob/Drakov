@@ -1,4 +1,5 @@
 import { getServerTime } from "@/lib/supabase";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,12 @@ export default async function Home() {
             ? `Connected to Supabase: ${result.timestamp}`
             : `Supabase connection error: ${result.error}`}
         </div>
+        <Link
+          className="mt-6 inline-flex rounded-lg bg-emerald-400 px-5 py-3 font-semibold text-zinc-950 transition hover:bg-emerald-300"
+          href="/launch"
+        >
+          Launch an agent
+        </Link>
       </section>
     </main>
   );
