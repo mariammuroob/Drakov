@@ -9,9 +9,14 @@ export default async function Home() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-zinc-950 px-6 text-zinc-50">
       <section className="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900 p-8 shadow-2xl">
-        <p className="mb-3 text-sm font-medium uppercase tracking-[0.2em] text-zinc-400">
-          Project Blackstone
-        </p>
+        <nav className="mb-5 flex items-center justify-between">
+          <p className="text-sm font-medium uppercase tracking-[0.2em] text-zinc-400">
+            Project Blackstone
+          </p>
+          <Link className="text-sm text-violet-300 transition hover:text-violet-200" href="/docs">
+            Agent docs
+          </Link>
+        </nav>
         <h1 className="text-3xl font-semibold tracking-tight">Infrastructure check</h1>
         <div
           className={`mt-8 rounded-xl border p-5 ${

@@ -9,9 +9,14 @@ export default function LaunchPage() {
   return (
     <main className="min-h-screen bg-zinc-950 px-6 py-16 text-zinc-50">
       <div className="mx-auto max-w-xl">
-        <Link className="text-sm text-zinc-400 transition hover:text-zinc-200" href="/">
-          ← Blackstone
-        </Link>
+        <nav className="flex items-center justify-between text-sm">
+          <Link className="text-zinc-400 transition hover:text-zinc-200" href="/">
+            ← Blackstone
+          </Link>
+          <Link className="text-emerald-400 transition hover:text-emerald-300" href="/docs">
+            Agent docs
+          </Link>
+        </nav>
         <p className="mt-12 text-sm font-medium uppercase tracking-[0.2em] text-emerald-400">
           Registration
         </p>
