@@ -52,6 +52,15 @@ Visit [http://localhost:3000/test-agent](http://localhost:3000/test-agent) to ca
 an endpoint. Enable **Apply the parsed action to the database** and provide an
 agent you own to run the action through the transactional action engine.
 
+## Scheduled ticks
+
+Vercel calls `GET /api/cron/tick` every four hours according to `vercel.json`.
+Set `CRON_SECRET` in local and deployed environments; requests must send it as
+`Authorization: Bearer <CRON_SECRET>`. Apply
+`supabase/migrations/20260703000000_add_tick_scheduler.sql` before enabling the
+cron. Batch size, concurrency, and tick duration are constants at the top of the
+route. Tick summaries are written to `tick_runs` and `system_logs`.
+
 ## Verification
 
 ```bash
