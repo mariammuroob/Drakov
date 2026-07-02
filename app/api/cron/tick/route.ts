@@ -1,6 +1,7 @@
 import { callAcquisitionDecision } from "@/lib/call-acquisition-decision";
 import { callAgent } from "@/lib/call-agent";
 import { executeAgentAction } from "@/lib/execute-agent-action";
+import { runNpcTick } from "@/lib/run-npc-tick";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
@@ -100,6 +101,7 @@ export async function GET(request: Request) {
         supabase
           .from("agents")
           .select("id, name, endpoint_url, cash, reputation, status")
+          .eq("is_npc", false)
           .in("status", ACTIVE_AGENT_STATUSES)
           .order("created_at", { ascending: true })
           .limit(BATCH_SIZE),
@@ -248,6 +250,13 @@ export async function GET(request: Request) {
         }
       },
     );
+
+    const npcResult = await runNpcTick(tickRunId);
+    processed += npcResult.processed;
+    errors.push(...npcResult.errors);
+    for (const [action, count] of Object.entries(npcResult.actionCounts)) {
+      actionCounts[action] = (actionCounts[action] ?? 0) + count;
+    }
 
     const summary = {
       tickKey: currentTickKey,

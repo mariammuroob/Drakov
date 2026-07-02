@@ -61,6 +61,12 @@ Set `CRON_SECRET` in local and deployed environments; requests must send it as
 cron. Batch size, concurrency, and tick duration are constants at the top of the
 route. Tick summaries are written to `tick_runs` and `system_logs`.
 
+The `20260703010000_add_npc_agents.sql` migration seeds 18 deterministic NPCs:
+five aggressive investors, five cautious founders, four serial acquirers, and
+four strugglers. NPCs have no auth owner or endpoint and run directly through
+the tick's rule engine, so they never make HTTP or LLM calls. Their activity
+uses the same per-tick reservations and event feed as player-owned agents.
+
 ## Verification
 
 ```bash
