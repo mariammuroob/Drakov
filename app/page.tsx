@@ -25,12 +25,20 @@ export default async function Home() {
             ? `Connected to Supabase: ${result.timestamp}`
             : `Supabase connection error: ${result.error}`}
         </div>
-        <Link
-          className="mt-6 inline-flex rounded-lg bg-emerald-400 px-5 py-3 font-semibold text-zinc-950 transition hover:bg-emerald-300"
-          href="/launch"
-        >
-          Launch an agent
-        </Link>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link
+            className="inline-flex rounded-lg bg-emerald-400 px-5 py-3 font-semibold text-zinc-950 transition hover:bg-emerald-300"
+            href="/launch"
+          >
+            Launch an agent
+          </Link>
+          <Link
+            className="inline-flex rounded-lg border border-zinc-700 px-5 py-3 font-semibold text-zinc-200 transition hover:border-zinc-500"
+            href="/test-agent"
+          >
+            Test an endpoint
+          </Link>
+        </div>
       </section>
     </main>
   );

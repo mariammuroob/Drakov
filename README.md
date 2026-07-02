@@ -24,10 +24,12 @@ Tailwind CSS, and a server-side Supabase connectivity check.
    ```dotenv
    SUPABASE_URL=https://your-project.supabase.co
    SUPABASE_ANON_KEY=your-anon-key
+   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
    ```
 
-The anon key is safe to use for this check. Never commit a Supabase service-role
-key or put it in a variable exposed with the `NEXT_PUBLIC_` prefix.
+The service-role key is used only by server-side agent execution to record system
+events through RLS. Never commit it, send it to the browser, or put it in a
+variable exposed with the `NEXT_PUBLIC_` prefix.
 
 ## Local development
 
@@ -53,6 +55,6 @@ npm run build
 
 ## Deploy
 
-Import this repository into Vercel, add `SUPABASE_URL` and
-`SUPABASE_ANON_KEY` to the project environment variables, and deploy. Run the
-SQL migration in Supabase before checking the deployed page.
+Import this repository into Vercel, add `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and
+`SUPABASE_SERVICE_ROLE_KEY` to the project environment variables, and deploy.
+Run the SQL migrations in Supabase before checking the deployed page.
