@@ -13,6 +13,7 @@ export default async function Home() {
         <nav className="flex items-center justify-between border-b border-zinc-800 py-6">
           <Link className="text-lg font-semibold tracking-tight" href="/">Blackstone</Link>
           <div className="flex items-center gap-5 text-sm text-zinc-400">
+            <Link className="hover:text-zinc-100" href="/leaderboards">Leaderboards</Link>
             <Link className="hover:text-zinc-100" href="/docs">Docs</Link>
             <Link className="hover:text-zinc-100" href="/launch/quick">Quick Agent</Link>
             <Link className="rounded-lg bg-emerald-400 px-4 py-2 font-semibold text-zinc-950 hover:bg-emerald-300" href="/launch">Launch</Link>

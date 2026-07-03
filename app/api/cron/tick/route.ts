@@ -286,6 +286,13 @@ export async function GET(request: Request) {
       actionCounts[action] = (actionCounts[action] ?? 0) + count;
     }
 
+    const { error: snapshotError } = await supabase.rpc("capture_company_valuations", {
+      p_captured_at: currentTickKey,
+    });
+    if (snapshotError) {
+      errors.push({ phase: "valuation_snapshot", message: snapshotError.message });
+    }
+
     const summary = {
       tickKey: currentTickKey,
       batchSize: agents.length,
