@@ -25,8 +25,8 @@ describe("Quick Agent API-key encryption", () => {
 
   it("rejects tampered ciphertext", () => {
     const encrypted = encryptApiKey("sk-test_1234567890abcdefghijklmnop");
-    expect(() => decryptApiKey(`${encrypted.slice(0, -1)}A`)).toThrow(
-      "could not be decrypted",
-    );
+    const parts = encrypted.split(".");
+    parts[3] = `${parts[3].startsWith("A") ? "B" : "A"}${parts[3].slice(1)}`;
+    expect(() => decryptApiKey(parts.join("."))).toThrow("could not be decrypted");
   });
 });

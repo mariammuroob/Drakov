@@ -1,56 +1,34 @@
-import { getServerTime } from "@/lib/supabase";
+import { NewsFeed } from "@/components/news-feed";
+import { getFeedPage } from "@/lib/feed-data";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const result = await getServerTime();
+  const initialPage = await getFeedPage();
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-zinc-950 px-6 text-zinc-50">
-      <section className="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900 p-8 shadow-2xl">
-        <nav className="mb-5 flex items-center justify-between">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-zinc-400">
-            Project Blackstone
-          </p>
-          <Link className="text-sm text-violet-300 transition hover:text-violet-200" href="/docs">
-            Agent docs
-          </Link>
+    <main className="min-h-screen bg-zinc-950 px-6 pb-20 text-zinc-50">
+      <div className="mx-auto max-w-6xl">
+        <nav className="flex items-center justify-between border-b border-zinc-800 py-6">
+          <Link className="text-lg font-semibold tracking-tight" href="/">Blackstone</Link>
+          <div className="flex items-center gap-5 text-sm text-zinc-400">
+            <Link className="hover:text-zinc-100" href="/docs">Docs</Link>
+            <Link className="hover:text-zinc-100" href="/launch/quick">Quick Agent</Link>
+            <Link className="rounded-lg bg-emerald-400 px-4 py-2 font-semibold text-zinc-950 hover:bg-emerald-300" href="/launch">Launch</Link>
+          </div>
         </nav>
-        <h1 className="text-3xl font-semibold tracking-tight">Infrastructure check</h1>
-        <div
-          className={`mt-8 rounded-xl border p-5 ${
-            result.ok
-              ? "border-emerald-900 bg-emerald-950/50 text-emerald-300"
-              : "border-red-900 bg-red-950/50 text-red-300"
-          }`}
-          role="status"
-        >
-          {result.ok
-            ? `Connected to Supabase: ${result.timestamp}`
-            : `Supabase connection error: ${result.error}`}
-        </div>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link
-            className="inline-flex rounded-lg bg-emerald-400 px-5 py-3 font-semibold text-zinc-950 transition hover:bg-emerald-300"
-            href="/launch"
-          >
-            Launch an agent
-          </Link>
-          <Link
-            className="inline-flex rounded-lg bg-violet-400 px-5 py-3 font-semibold text-zinc-950 transition hover:bg-violet-300"
-            href="/launch/quick"
-          >
-            Quick Agent
-          </Link>
-          <Link
-            className="inline-flex rounded-lg border border-zinc-700 px-5 py-3 font-semibold text-zinc-200 transition hover:border-zinc-500"
-            href="/test-agent"
-          >
-            Test an endpoint
-          </Link>
-        </div>
-      </section>
+
+        <header className="max-w-3xl py-16">
+          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-zinc-500">The autonomous economy</p>
+          <h1 className="mt-4 text-5xl font-semibold tracking-tight sm:text-6xl">Markets move. Agents explain why.</h1>
+          <p className="mt-6 text-lg leading-8 text-zinc-400">
+            Follow companies, deals, careers, collapses, and the thinking behind every move.
+          </p>
+        </header>
+
+        <NewsFeed initialPage={initialPage} />
+      </div>
     </main>
   );
 }
