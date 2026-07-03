@@ -1,5 +1,6 @@
 import { callAcquisitionDecision } from "@/lib/call-acquisition-decision";
 import { callAgent } from "@/lib/call-agent";
+import { callQuickAcquisitionDecision, callQuickAgent } from "@/lib/call-quick-agent";
 import { executeAgentAction } from "@/lib/execute-agent-action";
 import { runNpcTick } from "@/lib/run-npc-tick";
 import { createClient } from "@supabase/supabase-js";
@@ -18,10 +19,14 @@ const ACTIVE_AGENT_STATUSES = ["independent", "founder", "employed"];
 type Agent = {
   id: string;
   name: string;
-  endpoint_url: string;
+  endpoint_url: string | null;
   cash: number | string;
   reputation: number;
   status: string;
+  is_quick_agent: boolean;
+  llm_provider: "openai" | "anthropic" | null;
+  encrypted_api_key: string | null;
+  personality_prompt: string | null;
 };
 
 type Company = {
@@ -56,6 +61,21 @@ function hotMarket(companies: Company[]) {
     revenue.set(company.market, (revenue.get(company.market) ?? 0) + Number(company.revenue));
   }
   return [...revenue.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+}
+
+function quickCredentials(agent: Agent) {
+  if (
+    !agent.is_quick_agent ||
+    !agent.llm_provider ||
+    !agent.encrypted_api_key ||
+    !agent.personality_prompt
+  ) return null;
+  return {
+    id: agent.id,
+    llm_provider: agent.llm_provider,
+    encrypted_api_key: agent.encrypted_api_key,
+    personality_prompt: agent.personality_prompt,
+  };
 }
 
 async function inChunks<T>(items: T[], worker: (item: T) => Promise<void>) {
@@ -100,7 +120,7 @@ export async function GET(request: Request) {
       await Promise.all([
         supabase
           .from("agents")
-          .select("id, name, endpoint_url, cash, reputation, status")
+          .select("id, name, endpoint_url, cash, reputation, status, is_quick_agent, llm_provider, encrypted_api_key, personality_prompt")
           .eq("is_npc", false)
           .in("status", ACTIVE_AGENT_STATUSES)
           .order("created_at", { ascending: true })
@@ -178,7 +198,7 @@ export async function GET(request: Request) {
       if (!(await reserve(targetAgent.id))) continue;
 
       try {
-        const decision = await callAcquisitionDecision(targetAgent.endpoint_url, {
+        const acquisitionState = {
           request_type: "acquisition_decision",
           agent: {
             id: targetAgent.id,
@@ -192,7 +212,11 @@ export async function GET(request: Request) {
             offer_amount: Number(acquisition.offer_amount),
           },
           allowed_decisions: ["accept", "reject", "counter"],
-        });
+        };
+        const quickAgent = quickCredentials(targetAgent);
+        const decision = quickAgent
+          ? await callQuickAcquisitionDecision(quickAgent, acquisitionState)
+          : await callAcquisitionDecision(targetAgent.endpoint_url!, acquisitionState);
         const { error } = await supabase.rpc("resolve_acquisition", {
           p_acquisition_id: acquisition.id,
           p_target_agent_id: targetAgent.id,
@@ -217,9 +241,7 @@ export async function GET(request: Request) {
         try {
           const foundedCompanies = companies.filter((company) => company.founder_agent_id === agent.id);
           const employment = employments.find((item) => item.agent_id === agent.id) ?? null;
-          const action = await callAgent(
-            { id: agent.id, endpoint_url: agent.endpoint_url },
-            {
+          const gameState = {
               tick: currentTickKey,
               agent: {
                 id: agent.id,
@@ -237,8 +259,14 @@ export async function GET(request: Request) {
                 acquisitions: acquisitions.filter((offer) =>
                   foundedCompanies.some((company) => company.id === offer.target_company_id)),
               },
-            },
-          );
+            };
+          const quickAgent = quickCredentials(agent);
+          const action = quickAgent
+            ? await callQuickAgent(quickAgent, gameState)
+            : await callAgent(
+                { id: agent.id, endpoint_url: agent.endpoint_url! },
+                gameState,
+              );
           actionName = action.action;
           await executeAgentAction(agent.id, action);
           actionCounts[actionName] = (actionCounts[actionName] ?? 0) + 1;

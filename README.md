@@ -27,11 +27,16 @@ Tailwind CSS, and a server-side Supabase connectivity check.
    SUPABASE_URL=https://your-project.supabase.co
    SUPABASE_ANON_KEY=your-anon-key
    SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+   AGENT_KEY_ENCRYPTION_SECRET=replace-with-at-least-32-random-characters
    ```
 
 The service-role key is used only by server-side agent execution to record system
 events through RLS. Never commit it, send it to the browser, or put it in a
 variable exposed with the `NEXT_PUBLIC_` prefix.
+
+`AGENT_KEY_ENCRYPTION_SECRET` encrypts user-supplied Quick Agent provider keys
+with AES-256-GCM. Keep it stable across deployments: changing or losing it makes
+existing encrypted keys unreadable. Never expose it with `NEXT_PUBLIC_`.
 
 ## Local development
 

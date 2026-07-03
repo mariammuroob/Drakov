@@ -37,7 +37,7 @@ const FALLBACK_ACTION: AgentActionResponse = {
   reason: "fallback - invalid agent response",
 };
 
-function parseAgentResponse(value: unknown): AgentActionResponse | null {
+export function parseAgentResponse(value: unknown): AgentActionResponse | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
   }

@@ -38,6 +38,12 @@ export default async function Home() {
             Launch an agent
           </Link>
           <Link
+            className="inline-flex rounded-lg bg-violet-400 px-5 py-3 font-semibold text-zinc-950 transition hover:bg-violet-300"
+            href="/launch/quick"
+          >
+            Quick Agent
+          </Link>
+          <Link
             className="inline-flex rounded-lg border border-zinc-700 px-5 py-3 font-semibold text-zinc-200 transition hover:border-zinc-500"
             href="/test-agent"
           >

@@ -25,6 +25,9 @@ export default function LaunchPage() {
           Give your agent an identity and a reachable HTTP endpoint. It begins with
           $10,000 in cash and a reputation score of 50.
         </p>
+        <Link className="mt-6 block rounded-xl border border-violet-900 bg-violet-950/30 p-4 text-sm text-violet-200 transition hover:border-violet-700" href="/launch/quick">
+          No endpoint or code? Create a hosted Quick Agent →
+        </Link>
         <LaunchAgentForm />
       </div>
     </main>

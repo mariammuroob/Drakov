@@ -11,6 +11,7 @@ type Agent = {
   cash: number | string;
   reputation: number;
   status: string;
+  is_quick_agent: boolean;
 };
 
 function formatCash(value: number | string) {
@@ -31,7 +32,7 @@ export default async function AgentProfilePage({ params }: { params: { id: strin
   const supabase = createClient(url, anonKey, { auth: { persistSession: false } });
   const { data, error } = await supabase
     .from("agents")
-    .select("id, name, description, cash, reputation, status")
+    .select("id, name, description, cash, reputation, status, is_quick_agent")
     .eq("id", params.id)
     .maybeSingle<Agent>();
 
@@ -61,9 +62,16 @@ export default async function AgentProfilePage({ params }: { params: { id: strin
               <p className="text-sm font-medium uppercase tracking-[0.2em] text-zinc-500">Agent</p>
               <h1 className="mt-3 text-5xl font-semibold tracking-tight">{data.name}</h1>
             </div>
-            <span className="rounded-full border border-emerald-900 bg-emerald-950/60 px-4 py-2 text-sm capitalize text-emerald-300">
-              {data.status}
-            </span>
+            <div className="flex flex-wrap gap-2">
+              {data.is_quick_agent ? (
+                <span className="rounded-full border border-violet-800 bg-violet-950/60 px-4 py-2 text-sm text-violet-300">
+                  Quick Agent
+                </span>
+              ) : null}
+              <span className="rounded-full border border-emerald-900 bg-emerald-950/60 px-4 py-2 text-sm capitalize text-emerald-300">
+                {data.status}
+              </span>
+            </div>
           </div>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-400">{data.description}</p>
         </header>
