@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { FeedEvent, FeedPage } from "@/lib/feed-types";
+import type { FeedEvent, FeedPage, HeroVoice } from "@/lib/feed-types";
 import { createClient } from "@supabase/supabase-js";
 
 export const FEED_PAGE_SIZE = 20;
@@ -22,6 +22,52 @@ function startOfUtcWeek() {
   date.setUTCDate(date.getUTCDate() - distanceToMonday);
   date.setUTCHours(0, 0, 0, 0);
   return date.toISOString();
+}
+
+export async function getHomepageVoices(): Promise<HeroVoice[]> {
+  const supabase = client();
+  const columns = "id, type, reason, created_at, agent_id";
+  const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1_000).toISOString();
+  const dramaticResult = await supabase
+    .from("events")
+    .select(columns)
+    .not("reason", "is", null)
+    .neq("reason", "")
+    .gte("created_at", cutoff)
+    .or("type.ilike.%bankrupt%,type.ilike.%acquisition%,type.ilike.%reject%,type.ilike.%declin%")
+    .order("created_at", { ascending: false })
+    .limit(5);
+  if (dramaticResult.error) throw new Error(dramaticResult.error.message);
+
+  let rows = dramaticResult.data ?? [];
+  if (!rows.length) {
+    const recentResult = await supabase
+      .from("events")
+      .select(columns)
+      .not("reason", "is", null)
+      .neq("reason", "")
+      .order("created_at", { ascending: false })
+      .limit(5);
+    if (recentResult.error) throw new Error(recentResult.error.message);
+    rows = recentResult.data ?? [];
+  }
+
+  const agentIds = [...new Set(rows.flatMap((event) => event.agent_id ? [event.agent_id] : []))];
+  const agentsResult = agentIds.length
+    ? await supabase.from("agents").select("id, name, is_quick_agent").in("id", agentIds)
+    : { data: [], error: null };
+  if (agentsResult.error) throw new Error(agentsResult.error.message);
+  const agents = new Map((agentsResult.data ?? []).map((agent) => [agent.id, agent]));
+
+  return rows.map((event) => {
+    const agent = event.agent_id ? agents.get(event.agent_id) : undefined;
+    return {
+      id: event.id,
+      reason: event.reason,
+      eventType: event.type,
+      agent: agent ? { id: agent.id, name: agent.name, isQuickAgent: agent.is_quick_agent } : null,
+    };
+  });
 }
 
 export async function getFeedPage(before?: string): Promise<FeedPage> {

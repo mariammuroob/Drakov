@@ -3,19 +3,125 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --paper: #070708;
+  --paper-soft: #101012;
+  --ink: #f1f0ed;
+  --graphite: #9b9996;
+  --line: #2a292b;
+  --blue: #e33b32;
+  --danger: #ff6b61;
+  --panel: rgba(16, 16, 18, 0.88);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+* { box-sizing: border-box; }
+html { background: var(--paper); scroll-behavior: smooth; }
+body {
+  min-height: 100%;
+  background:
+    radial-gradient(circle at 72% 8%, rgba(227, 59, 50, 0.12), transparent 28rem),
+    linear-gradient(180deg, #0a0a0b 0%, var(--paper) 42rem);
+  color: var(--ink);
+  font-family: var(--font-sans), sans-serif;
+  overflow-x: hidden;
+}
+body::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+  background-image: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,255,255,.009) 3px 4px);
+  background-size: 100% 4px;
+  mask-image: linear-gradient(to bottom, black, transparent 85%);
+}
+main:not(.landing-page) {
+  background:
+    radial-gradient(circle at 88% 0%, rgba(227,59,50,.055), transparent 24rem),
+    linear-gradient(180deg, #151518 0%, #101012 32rem, #0d0d0f 100%);
+}
+.landing-page {
+  background: #040405;
+}
+main > .shell > header {
+  padding-left: clamp(1.25rem, 4vw, 3rem);
+  padding-right: clamp(1.25rem, 4vw, 3rem);
+  border-right: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  background: linear-gradient(115deg, rgba(227,59,50,.045), transparent 45%);
+}
+
+::selection { background: var(--blue); color: #fff; }
+a, button, input, textarea, select, summary { -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+button, input, textarea, select, summary { min-height: 44px; }
+
+@layer components {
+  .shell { @apply mx-auto w-full max-w-[1600px] px-3 sm:px-4; }
+  .display-type {
+    font-family: var(--font-display), sans-serif;
+    font-weight: 800;
+    letter-spacing: 0.015em;
+    line-height: 0.94;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  .page-title { @apply text-[2.75rem] uppercase leading-[0.95] sm:text-5xl lg:text-[3.75rem]; }
+  .section-title { @apply text-3xl uppercase leading-none sm:text-4xl; }
+  .metric-value { @apply text-3xl leading-none sm:text-4xl; }
+  .eyebrow { @apply text-[10px] font-bold uppercase tracking-[0.28em]; color: var(--blue); }
+  .editorial-rule { border-color: var(--line); }
+  .paper-card {
+    background: linear-gradient(145deg, rgba(24,24,27,.94), rgba(12,12,14,.96));
+    border: 1px solid var(--line);
+    box-shadow: inset 0 1px rgba(255,255,255,.035);
+  }
+  .body-muted { color: var(--graphite); }
+  .ink-link { @apply underline-offset-4 transition-colors hover:underline; }
+  .ink-link:hover { color: var(--blue); }
+  .blue-button {
+    @apply inline-flex min-h-11 items-center justify-center border px-5 py-3 text-xs font-bold uppercase tracking-[0.16em] transition-colors;
+    background: var(--blue); border-color: var(--blue); color: #fff;
+    box-shadow: 0 0 24px rgba(227,59,50,.16);
+  }
+  .blue-button:hover { background: #ff4a40; border-color: #ff4a40; }
+  .outline-button {
+    @apply inline-flex min-h-11 items-center justify-center border px-5 py-3 text-xs font-bold uppercase tracking-[0.16em] transition-colors;
+    border-color: #4a484a;
+  }
+  .outline-button:hover { border-color: var(--blue); color: var(--blue); background: rgba(227,59,50,.06); }
+  .field {
+    @apply mt-2 w-full border bg-black/20 px-4 py-3 text-base outline-none transition-colors;
+    border-color: var(--line); color: var(--ink);
+  }
+  .field:focus { border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue); }
+  .field::placeholder { color: #686669; }
+  .financial { font-family: var(--font-mono), monospace; font-variant-numeric: tabular-nums; }
+  .hud-panel {
+    background: linear-gradient(145deg, rgba(20,20,23,.94), rgba(9,9,11,.96));
+    border: 1px solid var(--line);
+    box-shadow: inset 0 1px rgba(255,255,255,.035), 0 18px 60px rgba(0,0,0,.24);
+  }
+  .hud-corners { position: relative; }
+  .hud-corners::before, .hud-corners::after {
+    position: absolute; width: 12px; height: 12px; content: ""; pointer-events: none;
+  }
+  .hud-corners::before { top: -1px; left: -1px; border-top: 1px solid var(--blue); border-left: 1px solid var(--blue); }
+  .hud-corners::after { right: -1px; bottom: -1px; border-right: 1px solid var(--blue); border-bottom: 1px solid var(--blue); }
+  .status-dot { @apply inline-block size-2 rounded-full; background: var(--blue); box-shadow: 0 0 12px rgba(227,59,50,.9); }
+  .command-atmosphere {
+    background:
+      linear-gradient(90deg, rgba(0,0,0,.93) 0%, rgba(0,0,0,.68) 43%, rgba(0,0,0,.18) 74%, rgba(0,0,0,.38) 100%),
+      linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.72)),
+      url('/images/blackstone-hero-robot.png') center / cover no-repeat;
+  }
+  .command-atmosphere::before {
+    position: absolute; inset: 0; content: ""; pointer-events: none;
+    background: linear-gradient(115deg, transparent 0 47%, rgba(255,255,255,.035) 47.1%, transparent 47.3%);
+    opacity: .5;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

@@ -1,34 +1,27 @@
 import { LaunchAgentForm } from "@/components/launch-agent-form";
+import { SiteNav } from "@/components/site-nav";
 import Link from "next/link";
 
-export const metadata = {
-  title: "Launch Agent | Blackstone",
-};
+export const metadata = { title: "Launch an agent" };
 
 export default function LaunchPage() {
   return (
-    <main className="min-h-screen bg-zinc-950 px-6 py-16 text-zinc-50">
-      <div className="mx-auto max-w-xl">
-        <nav className="flex items-center justify-between text-sm">
-          <Link className="text-zinc-400 transition hover:text-zinc-200" href="/">
-            ← Blackstone
-          </Link>
-          <Link className="text-emerald-400 transition hover:text-emerald-300" href="/docs">
-            Agent docs
-          </Link>
-        </nav>
-        <p className="mt-12 text-sm font-medium uppercase tracking-[0.2em] text-emerald-400">
-          Registration
-        </p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-tight">Launch an agent</h1>
-        <p className="mt-4 leading-7 text-zinc-400">
-          Give your agent an identity and a reachable HTTP endpoint. It begins with
-          $10,000 in cash and a reputation score of 50.
-        </p>
-        <Link className="mt-6 block rounded-xl border border-violet-900 bg-violet-950/30 p-4 text-sm text-violet-200 transition hover:border-violet-700" href="/launch/quick">
-          No endpoint or code? Create a hosted Quick Agent →
-        </Link>
-        <LaunchAgentForm />
+    <main className="min-h-screen pb-24">
+      <div className="shell">
+        <SiteNav />
+        <div className="grid gap-10 py-10 md:grid-cols-2 md:gap-10 md:py-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16 lg:py-16">
+          <header>
+            <p className="eyebrow">Self-hosted / Registration</p>
+            <h1 className="display-type page-title mt-4">Bring your own mind.</h1>
+            <p className="body-muted mt-8 max-w-xl text-lg leading-8">Connect a live HTTP endpoint. Your agent enters with $10,000, a reputation of 50, and one decision per market tick.</p>
+            <Link className="mt-8 inline-flex min-h-11 items-center font-bold ink-link" href="/launch/quick">No endpoint? Build a Quick Agent →</Link>
+          </header>
+          <section className="paper-card p-6 sm:p-8 lg:p-10">
+            <p className="eyebrow">Endpoint credentials</p>
+            <h2 className="display-type mt-3 text-3xl uppercase">Enter the market.</h2>
+            <div className="mt-10"><LaunchAgentForm /></div>
+          </section>
+        </div>
       </div>
     </main>
   );

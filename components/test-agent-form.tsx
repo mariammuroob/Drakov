@@ -79,11 +79,11 @@ export function TestAgentForm() {
   }
 
   return (
-    <form className="mt-10 space-y-6" onSubmit={handleSubmit}>
+    <form className="space-y-7" onSubmit={handleSubmit}>
       <label className="block">
-        <span className="text-sm font-medium text-zinc-300">Agent endpoint URL</span>
+        <span className="eyebrow">Agent endpoint URL</span>
         <input
-          className="mt-2 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-4 py-3 font-mono text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20"
+          className="field financial text-sm"
           type="url"
           required
           value={endpointUrl}
@@ -91,10 +91,10 @@ export function TestAgentForm() {
         />
       </label>
 
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-4">
-        <label className="flex items-center gap-3 text-sm font-medium text-zinc-300">
+      <div className="border p-4" style={{ borderColor: "var(--line)" }}>
+        <label className="flex min-h-11 items-center gap-3 text-sm font-bold">
           <input
-            className="size-4 accent-violet-400"
+            className="size-5 accent-[var(--blue)]"
             type="checkbox"
             checked={execute}
             onChange={(event) => setExecute(event.target.checked)}
@@ -103,9 +103,9 @@ export function TestAgentForm() {
         </label>
         {execute ? (
           <label className="mt-4 block">
-            <span className="text-sm text-zinc-400">Agent ID</span>
+            <span className="eyebrow">Agent ID</span>
             <input
-              className="mt-2 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-4 py-3 font-mono text-sm outline-none focus:border-violet-500"
+              className="field financial text-sm"
               required
               value={agentId}
               onChange={(event) => setAgentId(event.target.value)}
@@ -116,9 +116,9 @@ export function TestAgentForm() {
       </div>
 
       <label className="block">
-        <span className="text-sm font-medium text-zinc-300">Game state JSON</span>
+        <span className="eyebrow">Game state JSON</span>
         <textarea
-          className="mt-2 min-h-72 w-full resize-y rounded-lg border border-zinc-700 bg-zinc-950 px-4 py-3 font-mono text-sm leading-6 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20"
+          className="field financial min-h-72 resize-y text-sm leading-6"
           required
           spellCheck={false}
           value={gameState}
@@ -127,59 +127,56 @@ export function TestAgentForm() {
       </label>
 
       {error ? (
-        <p className="rounded-lg border border-red-900 bg-red-950/60 px-4 py-3 text-sm text-red-300" role="alert">
+        <p className="border-l-4 px-4 py-3 text-sm" style={{ borderColor: "var(--danger)", color: "var(--danger)" }} role="alert">
           {error}
         </p>
       ) : null}
 
       <button
-        className="w-full rounded-lg bg-violet-400 px-5 py-3 font-semibold text-zinc-950 transition hover:bg-violet-300 disabled:cursor-not-allowed disabled:opacity-60"
+        className="blue-button w-full disabled:cursor-not-allowed disabled:opacity-60"
         type="submit"
         disabled={submitting}
       >
-        {submitting ? "Calling agent…" : "Call Agent"}
+        {submitting ? "Calling the endpoint…" : "Run the decision"}
       </button>
 
       {result ? (
-        <section className="space-y-5 border-t border-zinc-800 pt-8" aria-live="polite">
+        <section className="space-y-6 border-t-2 pt-8 editorial-rule" aria-live="polite">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Result</h2>
+            <h2 className="display-type text-3xl uppercase">The verdict</h2>
             <span
-              className={`rounded-full px-3 py-1 text-xs font-medium ${
-                result.usedFallback
-                  ? "bg-amber-950 text-amber-300"
-                  : "bg-emerald-950 text-emerald-300"
-              }`}
+              className="border px-3 py-1 text-xs font-bold uppercase tracking-wider"
+              style={{ borderColor: result.usedFallback ? "var(--danger)" : "var(--blue)", color: result.usedFallback ? "var(--danger)" : "var(--blue)" }}
             >
               {result.usedFallback ? "Fallback used" : "Valid response"}
             </span>
           </div>
 
           <div>
-            <h3 className="mb-2 text-sm font-medium text-zinc-400">Parsed action</h3>
-            <pre className="overflow-x-auto rounded-lg border border-zinc-800 bg-black p-4 text-sm text-emerald-300">
+            <h3 className="eyebrow mb-2">Parsed action</h3>
+            <pre className="financial max-w-full overflow-x-auto border bg-black p-4 text-sm" style={{ borderColor: "var(--line)", color: "var(--ink)" }}>
               {JSON.stringify(result.parsedAction, null, 2)}
             </pre>
           </div>
 
           <div>
-            <h3 className="mb-2 text-sm font-medium text-zinc-400">Raw response</h3>
-            <pre className="overflow-x-auto rounded-lg border border-zinc-800 bg-black p-4 text-sm text-zinc-300">
+            <h3 className="eyebrow mb-2">Raw response</h3>
+            <pre className="financial max-w-full overflow-x-auto border bg-black p-4 text-sm" style={{ borderColor: "var(--line)", color: "var(--ink)" }}>
               {JSON.stringify(result.rawResponse, null, 2)}
             </pre>
           </div>
 
           {result.execution ? (
             <div>
-              <h3 className="mb-2 text-sm font-medium text-zinc-400">Database execution</h3>
-              <pre className="overflow-x-auto rounded-lg border border-zinc-800 bg-black p-4 text-sm text-violet-300">
+              <h3 className="eyebrow mb-2">Database execution</h3>
+              <pre className="financial max-w-full overflow-x-auto border bg-black p-4 text-sm" style={{ borderColor: "var(--line)", color: "var(--ink)" }}>
                 {JSON.stringify(result.execution, null, 2)}
               </pre>
             </div>
           ) : null}
 
           {result.executionError ? (
-            <p className="rounded-lg border border-red-900 bg-red-950/60 px-4 py-3 text-sm text-red-300">
+            <p className="border-l-4 px-4 py-3 text-sm" style={{ borderColor: "var(--danger)", color: "var(--danger)" }}>
               Execution rejected: {result.executionError}
             </p>
           ) : null}

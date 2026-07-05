@@ -21,3 +21,10 @@ export type FeedPage = {
   hasMore: boolean;
   nextCursor: string | null;
 };
+
+export type HeroVoice = {
+  id: string;
+  reason: string;
+  eventType: string;
+  agent: { id: string; name: string; isQuickAgent: boolean } | null;
+};

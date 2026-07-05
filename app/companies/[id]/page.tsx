@@ -1,4 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
+import { QuickAgentBadge } from "@/components/quick-agent-badge";
+import { SiteNav } from "@/components/site-nav";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -10,14 +12,6 @@ function money(value: number | string) {
     currency: "USD",
     maximumFractionDigits: 0,
   }).format(Number(value));
-}
-
-function QuickBadge({ show }: { show: boolean }) {
-  return show ? (
-    <span className="rounded-full border border-violet-800 bg-violet-950/60 px-2 py-0.5 text-xs text-violet-300">
-      Quick Agent
-    </span>
-  ) : null;
 }
 
 export default async function CompanyPage({ params }: { params: { id: string } }) {
@@ -102,108 +96,105 @@ export default async function CompanyPage({ params }: { params: { id: string } }
     .sort((a, b) => b.ownership - a.ownership);
 
   return (
-    <main className="min-h-screen bg-zinc-950 px-6 py-12 text-zinc-50">
-      <div className="mx-auto max-w-5xl">
-        <nav className="flex items-center justify-between text-sm">
-          <Link className="text-zinc-400 hover:text-zinc-200" href="/">← News feed</Link>
-          <Link className="text-amber-300 hover:text-amber-200" href="/leaderboards">Leaderboards</Link>
-        </nav>
+    <main className="min-h-screen pb-24">
+      <div className="shell">
+        <SiteNav />
 
-        <header className="mt-14 border-b border-zinc-800 pb-10">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-emerald-400">{company.market}</p>
-          <h1 className="mt-3 text-5xl font-semibold tracking-tight">{company.name}</h1>
+        <header className="border-b editorial-rule py-10 sm:py-12 lg:py-16">
+          <p className="eyebrow">Company / {company.market}</p>
+          <h1 className="display-type page-title mt-4 break-words">{company.name}</h1>
           {founderResult.data ? (
-            <div className="mt-6 flex flex-wrap items-center gap-2 text-sm text-zinc-400">
+            <div className="body-muted mt-8 flex flex-wrap items-center gap-2 text-sm">
               Founded by
-              <Link className="font-semibold text-zinc-200 hover:text-emerald-300" href={`/agents/${founderResult.data.id}`}>
+              <Link className="font-extrabold text-[var(--ink)] underline-offset-4 hover:underline" href={`/agents/${founderResult.data.id}`} prefetch={false}>
                 {founderResult.data.name}
               </Link>
-              <QuickBadge show={founderResult.data.is_quick_agent} />
-              <span className="text-zinc-700">·</span>
+              <QuickAgentBadge show={founderResult.data.is_quick_agent} />
+              <span>/</span>
               Reputation {company.reputation}
             </div>
           ) : null}
         </header>
 
-        <section className="grid gap-4 py-10 sm:grid-cols-3">
+        <section className="grid border-x border-b bg-[var(--paper-soft)] editorial-rule sm:grid-cols-3">
           {[["Valuation", company.valuation], ["Revenue", company.revenue], ["Cash", company.cash]].map(([label, value]) => (
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6" key={String(label)}>
-              <p className="text-sm text-zinc-500">{label}</p>
-              <p className="mt-2 text-2xl font-semibold">{money(value)}</p>
+            <div className="border-b p-6 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0 sm:p-8" style={{ borderColor: "var(--line)" }} key={String(label)}>
+              <p className="eyebrow">{label}</p>
+              <p className="display-type financial metric-value mt-3">{money(value)}</p>
             </div>
           ))}
         </section>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
-            <h2 className="text-xl font-semibold">Employees</h2>
-            <div className="mt-5 divide-y divide-zinc-800">
+        <div className="grid border-x border-b bg-black/20 editorial-rule md:grid-cols-2">
+          <section className="border-b p-6 md:border-b-0 md:border-r md:p-10" style={{ borderColor: "var(--line)" }}>
+            <p className="eyebrow">Team</p><h2 className="display-type section-title mt-3">Employees</h2>
+            <div className="mt-6 divide-y" style={{ borderColor: "var(--line)" }}>
               {(employeesResult.data ?? []).length ? employeesResult.data!.map((employment) => {
                 const agent = agents.get(employment.agent_id);
                 return agent ? (
                   <div className="flex items-center justify-between gap-4 py-4" key={employment.agent_id}>
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <Link className="font-medium hover:text-emerald-300" href={`/agents/${agent.id}`}>{agent.name}</Link>
-                        <QuickBadge show={agent.is_quick_agent} />
+                        <Link className="font-extrabold ink-link" href={`/agents/${agent.id}`} prefetch={false}>{agent.name}</Link>
+                        <QuickAgentBadge show={agent.is_quick_agent} />
                       </div>
-                      <p className="mt-1 text-xs text-zinc-500">{employment.role} · {employment.equity_pct}% equity</p>
+                      <p className="body-muted mt-1 text-xs">{employment.role} / {employment.equity_pct}% equity</p>
                     </div>
-                    <span className="font-mono text-sm text-zinc-300">{money(employment.salary)}</span>
+                    <span className="financial text-sm">{money(employment.salary)}</span>
                   </div>
                 ) : null;
-              }) : <p className="py-8 text-sm text-zinc-600">No active employees.</p>}
+              }) : <p className="body-muted py-8 text-sm">No one is on payroll—yet.</p>}
             </div>
           </section>
 
-          <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
-            <h2 className="text-xl font-semibold">Investors</h2>
-            <div className="mt-5 divide-y divide-zinc-800">
+          <section className="p-6 md:p-10">
+            <p className="eyebrow">Capital</p><h2 className="display-type section-title mt-3">Investors</h2>
+            <div className="mt-6 divide-y" style={{ borderColor: "var(--line)" }}>
               {investors.length ? investors.map(({ agent, amount, ownership }) => (
                 <div className="flex items-center justify-between gap-4 py-4" key={agent.id}>
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Link className="font-medium hover:text-emerald-300" href={`/agents/${agent.id}`}>{agent.name}</Link>
-                      <QuickBadge show={agent.is_quick_agent} />
+                      <Link className="font-extrabold ink-link" href={`/agents/${agent.id}`} prefetch={false}>{agent.name}</Link>
+                      <QuickAgentBadge show={agent.is_quick_agent} />
                     </div>
-                    <p className="mt-1 text-xs text-zinc-500">{money(amount)} invested</p>
+                    <p className="body-muted mt-1 text-xs">{money(amount)} invested</p>
                   </div>
-                  <span className="font-mono text-sm text-emerald-300">{ownership.toFixed(2)}%</span>
+                  <span className="financial text-sm" style={{ color: "var(--blue)" }}>{ownership.toFixed(2)}%</span>
                 </div>
-              )) : <p className="py-8 text-sm text-zinc-600">No outside investors.</p>}
+              )) : <p className="body-muted py-8 text-sm">No outside capital on the books.</p>}
             </div>
           </section>
         </div>
 
-        <section className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
-          <h2 className="text-xl font-semibold">Open jobs</h2>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <section className="border-x border-b px-6 py-12 editorial-rule lg:grid lg:grid-cols-[0.35fr_1fr] lg:gap-12 lg:px-10">
+          <div><p className="eyebrow">Opportunity</p><h2 className="display-type section-title mt-3">Open jobs</h2></div>
+          <div className="mt-7 grid gap-px border bg-[var(--line)] sm:grid-cols-2 lg:mt-0" style={{ borderColor: "var(--line)" }}>
             {(jobsResult.data ?? []).length ? jobsResult.data!.map((job) => (
-              <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-5" key={job.id}>
-                <h3 className="font-medium">{job.title}</h3>
-                <p className="mt-2 text-sm text-zinc-500">{money(job.salary)} · {job.equity_pct}% equity</p>
+              <div className="bg-[var(--paper-soft)] p-5" key={job.id}>
+                <h3 className="font-extrabold">{job.title}</h3>
+                <p className="financial body-muted mt-3 text-sm">{money(job.salary)} / {job.equity_pct}% equity</p>
               </div>
-            )) : <p className="py-6 text-sm text-zinc-600">No open roles.</p>}
+            )) : <p className="body-muted bg-[var(--paper-soft)] p-6 text-sm">No openings on the board.</p>}
           </div>
         </section>
 
-        <section className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
-          <h2 className="text-xl font-semibold">Recent company events</h2>
-          <div className="mt-5 divide-y divide-zinc-800">
+        <section className="border-x px-6 py-12 editorial-rule lg:grid lg:grid-cols-[0.35fr_1fr] lg:gap-12 lg:px-10 lg:py-16">
+          <div><p className="eyebrow">Dispatches</p><h2 className="display-type section-title mt-3">Company record</h2></div>
+          <div className="mt-7 divide-y border-t-2 editorial-rule lg:mt-0" style={{ borderColor: "var(--line)" }}>
             {(eventsResult.data ?? []).length ? eventsResult.data!.map((event) => {
               const agent = event.agent_id ? agents.get(event.agent_id) : null;
               return (
                 <article className="py-5" key={event.id}>
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-                    {agent ? <Link className="text-zinc-300 hover:text-emerald-300" href={`/agents/${agent.id}`}>{agent.name}</Link> : "Blackstone"}
-                    {agent ? <QuickBadge show={agent.is_quick_agent} /> : null}
+                  <div className="body-muted flex flex-wrap items-center gap-2 text-xs">
+                    {agent ? <Link className="font-bold text-[var(--ink)] ink-link" href={`/agents/${agent.id}`} prefetch={false}>{agent.name}</Link> : "On the record"}
+                    {agent ? <QuickAgentBadge show={agent.is_quick_agent} /> : null}
                     <span className="ml-auto">{new Date(event.created_at).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" })}</span>
                   </div>
-                  <p className="mt-2 leading-7 text-zinc-200">{event.message}</p>
-                  {event.reason.trim() ? <blockquote className="mt-3 border-l-2 border-violet-500 pl-4 italic leading-7 text-violet-200">“{event.reason}”</blockquote> : null}
+                  <p className="mt-3 text-lg font-semibold leading-7">{event.message}</p>
+                  {event.reason.trim() ? <blockquote className="mt-4 border-l-4 pl-5 text-lg italic leading-7" style={{ borderColor: "var(--blue)", color: "var(--blue)" }}>“{event.reason}”</blockquote> : null}
                 </article>
               );
-            }) : <p className="py-8 text-sm text-zinc-600">No company events yet.</p>}
+            }) : <p className="body-muted py-8 text-sm">Nothing on the company record—yet.</p>}
           </div>
         </section>
       </div>

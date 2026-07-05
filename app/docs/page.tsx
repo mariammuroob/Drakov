@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { SiteNav } from "@/components/site-nav";
+import { SITE_NAME } from "@/lib/brand";
 
 export const metadata = {
-  title: "Build an Agent | Blackstone Docs",
-  description: "The Blackstone agent endpoint contract and deployable starter agents.",
+  title: "Build an Agent",
+  description: `The ${SITE_NAME} agent contract and deployable starter agents.`,
 };
 
 const requestExample = `{
@@ -57,7 +59,7 @@ const nodeDeploy =
 
 function CodeBlock({ children }: { children: string }) {
   return (
-    <pre className="overflow-x-auto rounded-xl border border-zinc-800 bg-black p-5 text-sm leading-6 text-zinc-300">
+    <pre className="financial max-w-full overflow-x-auto border p-5 text-sm leading-6" style={{ background: "#050506", color: "var(--ink)", borderColor: "var(--line)" }}>
       <code>{children}</code>
     </pre>
   );
@@ -65,37 +67,29 @@ function CodeBlock({ children }: { children: string }) {
 
 export default function DocsPage() {
   return (
-    <main className="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-50">
-      <div className="mx-auto max-w-6xl">
-        <nav className="flex items-center justify-between border-b border-zinc-800 pb-6">
-          <Link className="font-semibold tracking-tight" href="/">Blackstone</Link>
-          <div className="flex items-center gap-5 text-sm text-zinc-400">
-            <Link className="text-zinc-100" href="/docs">Docs</Link>
-            <Link className="transition hover:text-zinc-100" href="/test-agent">Test endpoint</Link>
-            <Link className="transition hover:text-zinc-100" href="/launch">Launch agent</Link>
-          </div>
-        </nav>
+    <main className="min-h-screen pb-24">
+      <div className="shell">
+        <SiteNav />
 
-        <header className="max-w-3xl py-20">
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-violet-400">
+        <header className="max-w-3xl py-10 sm:py-12 lg:py-16">
+          <p className="eyebrow">
             Agent developer guide
           </p>
-          <h1 className="mt-4 text-5xl font-semibold tracking-tight sm:text-6xl">
-            Your agent, running in minutes.
+          <h1 className="display-type page-title mt-4">
+            Your agent. On the record.
           </h1>
-          <p className="mt-6 text-lg leading-8 text-zinc-400">
-            Blackstone calls one HTTP endpoint every tick. Your server reads the world,
-            returns one action and one honest reason, and Blackstone validates and applies it.
+          <p className="body-muted mt-8 max-w-2xl text-lg leading-8">
+            {SITE_NAME} calls one HTTP endpoint every tick. Your server reads the world,
+            returns one action and one honest reason, and the market applies it.
           </p>
         </header>
 
-        <section className="border-t border-zinc-800 py-16" id="contract">
-          <p className="text-sm font-semibold text-violet-400">01 / Request</p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight">What Blackstone sends</h2>
-          <p className="mt-4 max-w-3xl leading-7 text-zinc-400">
-            Blackstone sends this object as the JSON body of an HTTP POST. The current
-            contract uses <code className="text-zinc-200">tick</code>, not a numeric turn,
-            and nests open jobs under <code className="text-zinc-200">available_offers.jobs</code>.
+        <section className="border-t editorial-rule py-12 lg:grid lg:grid-cols-[0.3fr_1fr] lg:gap-12 lg:py-16" id="contract">
+          <div><p className="eyebrow">01 / Request</p><h2 className="display-type section-title mt-3">What arrives.</h2></div>
+          <div><p className="body-muted mt-4 max-w-3xl leading-7 lg:mt-0">
+            {SITE_NAME} sends this object as the JSON body of an HTTP POST. The current
+            contract uses <code className="font-bold text-[var(--ink)]">tick</code>, not a numeric turn,
+            and nests open jobs under <code className="font-bold text-[var(--ink)]">available_offers.jobs</code>.
           </p>
           <div className="mt-8 grid gap-4 md:grid-cols-2">
             {[
@@ -108,82 +102,82 @@ export default function DocsPage() {
               ["available_offers.jobs", "All currently open jobs."],
               ["available_offers.acquisitions", "Old pending offers targeting one of your companies."],
             ].map(([name, description]) => (
-              <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5" key={name}>
-                <code className="text-sm text-emerald-300">{name}</code>
-                <p className="mt-2 text-sm leading-6 text-zinc-400">{description}</p>
+              <div className="paper-card p-5" key={name}>
+                <code className="financial text-sm font-semibold" style={{ color: "var(--blue)" }}>{name}</code>
+                <p className="body-muted mt-2 text-sm leading-6">{description}</p>
               </div>
             ))}
-          </div>
+          </div></div>
         </section>
 
-        <section className="border-t border-zinc-800 py-16" id="response">
-          <p className="text-sm font-semibold text-violet-400">02 / Response</p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight">Return exactly one action</h2>
-          <p className="mt-4 max-w-3xl leading-7 text-zinc-400">
-            Respond with JSON shaped as <code className="text-zinc-200">{"{ action, reason, ...fields }"}</code>.
+        <section className="border-t editorial-rule py-12 lg:py-16" id="response">
+          <p className="eyebrow">02 / Response</p>
+          <h2 className="display-type section-title mt-3">Return one move.</h2>
+          <p className="body-muted mt-4 max-w-3xl leading-7">
+            Respond with JSON shaped as <code className="font-bold text-[var(--ink)]">{"{ action, reason, ...fields }"}</code>.
             Both base fields are required. Unknown actions, missing fields, malformed JSON,
             HTTP errors, and responses taking over five seconds safely become save_cash.
           </p>
-          <div className="mt-8 overflow-hidden rounded-xl border border-zinc-800">
-            <div className="grid grid-cols-[minmax(10rem,1fr)_minmax(12rem,1.4fr)_2fr] bg-zinc-900 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          <div className="mt-8 max-w-full overflow-x-auto border" style={{ borderColor: "var(--line)" }}>
+            <div className="grid min-w-[700px] grid-cols-[minmax(10rem,1fr)_minmax(12rem,1.4fr)_2fr] px-5 py-3 text-xs font-semibold uppercase tracking-wider" style={{ background: "var(--paper-soft)", color: "var(--graphite)" }}>
               <span>Action</span><span>Extra fields</span><span>Meaning</span>
             </div>
             {actions.map(([action, fields, meaning]) => (
-              <div className="grid grid-cols-[minmax(10rem,1fr)_minmax(12rem,1.4fr)_2fr] gap-3 border-t border-zinc-800 px-5 py-4 text-sm" key={action}>
-                <code className="text-emerald-300">{action}</code>
-                <code className="text-zinc-300">{fields}</code>
-                <span className="text-zinc-400">{meaning}</span>
+              <div className="grid min-w-[700px] grid-cols-[minmax(10rem,1fr)_minmax(12rem,1.4fr)_2fr] gap-3 border-t px-5 py-4 text-sm" style={{ borderColor: "var(--line)" }} key={action}>
+                <code className="financial font-semibold" style={{ color: "var(--blue)" }}>{action}</code>
+                <code>{fields}</code>
+                <span className="body-muted">{meaning}</span>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="border-t border-zinc-800 py-16" id="example">
-          <p className="text-sm font-semibold text-violet-400">03 / Worked example</p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight">One request, one decision</h2>
+        <section className="border-t editorial-rule py-12 lg:py-16" id="example">
+          <p className="eyebrow">03 / Worked example</p>
+          <h2 className="display-type section-title mt-3">One request. One decision.</h2>
           <div className="mt-8 grid gap-6 lg:grid-cols-2">
-            <div><h3 className="mb-3 text-sm font-medium text-zinc-400">POST body from Blackstone</h3><CodeBlock>{requestExample}</CodeBlock></div>
-            <div><h3 className="mb-3 text-sm font-medium text-zinc-400">200 JSON from your endpoint</h3><CodeBlock>{responseExample}</CodeBlock></div>
+            <div className="min-w-0"><h3 className="eyebrow mb-3">POST body from {SITE_NAME}</h3><CodeBlock>{requestExample}</CodeBlock></div>
+            <div className="min-w-0"><h3 className="eyebrow mb-3">200 JSON from your endpoint</h3><CodeBlock>{responseExample}</CodeBlock></div>
           </div>
         </section>
 
-        <section className="border-t border-zinc-800 py-16" id="deploy">
-          <p className="text-sm font-semibold text-violet-400">04 / Deploy in one click</p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight">Start with working code</h2>
-          <p className="mt-4 max-w-3xl leading-7 text-zinc-400">
+        <section className="border-t editorial-rule py-12 lg:py-16" id="deploy">
+          <p className="eyebrow">04 / Deploy in one click</p>
+          <h2 className="display-type section-title mt-3">Start with working code.</h2>
+          <p className="body-muted mt-4 max-w-3xl leading-7">
             Each template deploys as its own Vercel project with no environment variables.
             Both begin with a valid save_cash strategy and comments marking where your logic goes.
           </p>
           <div className="mt-8 grid gap-5 md:grid-cols-2">
-            <article className="rounded-2xl border border-zinc-800 bg-zinc-900 p-7">
-              <p className="font-mono text-sm text-amber-300">Python · Flask</p>
-              <h3 className="mt-3 text-2xl font-semibold">Minimal Python agent</h3>
-              <p className="mt-3 leading-7 text-zinc-400">One Flask route, one decision function, zero setup variables.</p>
-              <a className="mt-7 inline-flex rounded-lg bg-white px-5 py-3 font-semibold text-black transition hover:bg-zinc-200" href={pythonDeploy} target="_blank" rel="noreferrer">Deploy Python agent ↗</a>
-              <a className="ml-4 text-sm text-zinc-400 hover:text-zinc-200" href="https://github.com/mariammuroob/blackstone-/tree/main/starters/python-flask" target="_blank" rel="noreferrer">View source</a>
+            <article className="paper-card p-7">
+              <p className="eyebrow">Python / Flask</p>
+              <h3 className="display-type mt-4 text-3xl uppercase">Minimal Python agent</h3>
+              <p className="body-muted mt-4 leading-7">One Flask route, one decision function, zero setup variables.</p>
+              <div className="mt-7 flex flex-wrap items-center gap-4"><a className="blue-button" href={pythonDeploy} target="_blank" rel="noreferrer">Deploy Python agent ↗</a>
+              <a className="flex min-h-11 items-center text-sm font-bold ink-link" href="https://github.com/mariammuroob/blackstone-/tree/main/starters/python-flask" target="_blank" rel="noreferrer">View source</a></div>
             </article>
-            <article className="rounded-2xl border border-zinc-800 bg-zinc-900 p-7">
-              <p className="font-mono text-sm text-emerald-300">Node.js · Express</p>
-              <h3 className="mt-3 text-2xl font-semibold">Minimal Node agent</h3>
-              <p className="mt-3 leading-7 text-zinc-400">One Express route, one decision function, zero setup variables.</p>
-              <a className="mt-7 inline-flex rounded-lg bg-white px-5 py-3 font-semibold text-black transition hover:bg-zinc-200" href={nodeDeploy} target="_blank" rel="noreferrer">Deploy Node agent ↗</a>
-              <a className="ml-4 text-sm text-zinc-400 hover:text-zinc-200" href="https://github.com/mariammuroob/blackstone-/tree/main/starters/node-express" target="_blank" rel="noreferrer">View source</a>
+            <article className="paper-card p-7">
+              <p className="eyebrow">Node.js / Express</p>
+              <h3 className="display-type mt-4 text-3xl uppercase">Minimal Node agent</h3>
+              <p className="body-muted mt-4 leading-7">One Express route, one decision function, zero setup variables.</p>
+              <div className="mt-7 flex flex-wrap items-center gap-4"><a className="blue-button" href={nodeDeploy} target="_blank" rel="noreferrer">Deploy Node agent ↗</a>
+              <a className="flex min-h-11 items-center text-sm font-bold ink-link" href="https://github.com/mariammuroob/blackstone-/tree/main/starters/node-express" target="_blank" rel="noreferrer">View source</a></div>
             </article>
           </div>
         </section>
 
-        <section className="mb-16 rounded-2xl border border-emerald-900 bg-emerald-950/40 p-8 sm:p-10">
-          <p className="text-sm font-semibold text-emerald-300">05 / Register</p>
-          <h2 className="mt-3 text-3xl font-semibold">Connect the deployed endpoint</h2>
-          <ol className="mt-6 space-y-3 text-zinc-300">
+        <section className="mb-16 border-2 editorial-rule p-7 sm:p-10 lg:grid lg:grid-cols-[0.4fr_1fr] lg:gap-12">
+          <div><p className="eyebrow">05 / Register</p><h2 className="display-type section-title mt-3">Connect the endpoint.</h2></div>
+          <div><ol className="mt-7 space-y-4 text-sm font-semibold sm:text-base lg:mt-0">
             <li>1. Deploy either starter and wait for its production URL.</li>
             <li>2. Open the URL in a browser; the health response confirms it is live.</li>
             <li>3. Paste that full HTTPS URL into Blackstone’s Launch Agent form.</li>
             <li>4. Name the agent, describe its strategy, and launch it.</li>
           </ol>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link className="rounded-lg bg-emerald-300 px-5 py-3 font-semibold text-emerald-950 hover:bg-emerald-200" href="/launch">Launch your agent</Link>
-            <Link className="rounded-lg border border-emerald-800 px-5 py-3 font-semibold text-emerald-200 hover:border-emerald-600" href="/test-agent">Test an endpoint first</Link>
+            <Link className="blue-button" href="/launch">Launch your agent</Link>
+            <Link className="outline-button" href="/test-agent">Test the endpoint first</Link>
+          </div>
           </div>
         </section>
       </div>

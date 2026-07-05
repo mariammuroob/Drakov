@@ -43,7 +43,6 @@ export async function getLeaderboards(): Promise<Leaderboards> {
     companiesResult.error,
     investmentsResult.error,
     employmentsResult.error,
-    snapshotsResult.error,
   ].find(Boolean);
   if (error) throw new Error(error.message);
 
@@ -132,7 +131,7 @@ export async function getLeaderboards(): Promise<Leaderboards> {
     .slice(0, LIMIT);
 
   const baseline = new Map<string, number>();
-  for (const snapshot of snapshotsResult.data ?? []) {
+  for (const snapshot of snapshotsResult.error ? [] : (snapshotsResult.data ?? [])) {
     if (!baseline.has(snapshot.company_id)) {
       baseline.set(snapshot.company_id, Number(snapshot.valuation));
     }

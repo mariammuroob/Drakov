@@ -45,11 +45,11 @@ export function LaunchAgentForm() {
   }
 
   return (
-    <form className="mt-10 space-y-6" onSubmit={handleSubmit}>
+    <form className="space-y-7" onSubmit={handleSubmit}>
       <label className="block">
-        <span className="text-sm font-medium text-zinc-300">Name</span>
+        <span className="eyebrow">Name</span>
         <input
-          className="mt-2 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-4 py-3 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+          className="field"
           name="name"
           required
           maxLength={100}
@@ -59,9 +59,9 @@ export function LaunchAgentForm() {
       </label>
 
       <label className="block">
-        <span className="text-sm font-medium text-zinc-300">Description</span>
+        <span className="eyebrow">Public description</span>
         <textarea
-          className="mt-2 min-h-32 w-full resize-y rounded-lg border border-zinc-700 bg-zinc-950 px-4 py-3 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+          className="field min-h-32 resize-y"
           name="description"
           required
           maxLength={1000}
@@ -70,9 +70,9 @@ export function LaunchAgentForm() {
       </label>
 
       <label className="block">
-        <span className="text-sm font-medium text-zinc-300">Endpoint URL</span>
+        <span className="eyebrow">Endpoint URL</span>
         <input
-          className="mt-2 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-4 py-3 font-mono text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+          className="field financial text-sm"
           name="endpoint_url"
           type="url"
           inputMode="url"
@@ -82,17 +82,17 @@ export function LaunchAgentForm() {
       </label>
 
       {error ? (
-        <p className="rounded-lg border border-red-900 bg-red-950/60 px-4 py-3 text-sm text-red-300" role="alert">
+        <p className="border-l-4 px-4 py-3 text-sm" style={{ borderColor: "var(--danger)", color: "var(--danger)" }} role="alert">
           {error}
         </p>
       ) : null}
 
       <button
-        className="w-full rounded-lg bg-emerald-400 px-5 py-3 font-semibold text-zinc-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+        className="blue-button w-full disabled:cursor-not-allowed disabled:opacity-60"
         type="submit"
         disabled={submitting}
       >
-        {submitting ? "Launching…" : "Launch agent"}
+        {submitting ? "Entering the market…" : "Put this agent to work"}
       </button>
     </form>
   );

@@ -1,26 +1,19 @@
+import { SiteNav } from "@/components/site-nav";
 import { TestAgentForm } from "@/components/test-agent-form";
-import Link from "next/link";
 
-export const metadata = {
-  title: "Test Agent | Blackstone",
-};
+export const metadata = { title: "Endpoint laboratory" };
 
 export default function TestAgentPage() {
   return (
-    <main className="min-h-screen bg-zinc-950 px-6 py-16 text-zinc-50">
-      <div className="mx-auto max-w-3xl">
-        <Link className="text-sm text-zinc-400 transition hover:text-zinc-200" href="/">
-          ← Blackstone
-        </Link>
-        <p className="mt-12 text-sm font-medium uppercase tracking-[0.2em] text-violet-400">
-          Agent laboratory
-        </p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-tight">Test an agent endpoint</h1>
-        <p className="mt-4 max-w-2xl leading-7 text-zinc-400">
-          Send a sample game state and inspect both the endpoint payload and the action
-          Blackstone accepted. Invalid responses safely fall back to saving cash.
-        </p>
-        <TestAgentForm />
+    <main className="min-h-screen pb-24">
+      <div className="shell">
+        <SiteNav />
+        <header className="max-w-3xl py-10 sm:py-12 lg:py-16">
+          <p className="eyebrow">Endpoint laboratory / Test bench</p>
+          <h1 className="display-type page-title mt-4">Make the call. Read the result.</h1>
+          <p className="body-muted mt-8 max-w-2xl text-lg leading-8">Send a sample market state. Inspect what came back and what the economy accepted.</p>
+        </header>
+        <div className="paper-card mx-auto max-w-4xl p-5 sm:p-8 lg:p-12"><TestAgentForm /></div>
       </div>
     </main>
   );

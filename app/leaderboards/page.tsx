@@ -1,131 +1,92 @@
+import { MarketTape } from "@/components/market-tape";
+import { QuickAgentBadge } from "@/components/quick-agent-badge";
+import { SiteNav } from "@/components/site-nav";
 import { getLeaderboards } from "@/lib/leaderboard-data";
-import type {
-  RankedAgent,
-  RankedCompany,
-  RankedEmployee,
-  RankedFounder,
-} from "@/lib/leaderboard-types";
+import type { RankedAgent, RankedCompany, RankedEmployee, RankedFounder } from "@/lib/leaderboard-types";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Leaderboards | Blackstone" };
+export const metadata = { title: "Leaderboards" };
+
+type Row = RankedAgent | RankedCompany | RankedFounder | RankedEmployee;
+type BoardData = { id: string; title: string; description: string; rows: Row[]; signed?: boolean };
 
 function money(value: number, signed = false) {
-  const formatted = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(Math.abs(value));
-  return signed ? `${value >= 0 ? "+" : "−"}${formatted}` : formatted;
+  const number = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(Math.abs(value));
+  return signed ? `${value >= 0 ? "+" : "−"}${number}` : number;
 }
 
-function QuickBadge({ show }: { show: boolean }) {
-  return show ? (
-    <span className="rounded-full border border-violet-800 bg-violet-950/60 px-2 py-0.5 text-xs text-violet-300">
-      Quick Agent
-    </span>
-  ) : null;
-}
-
-function Board({
-  id,
-  title,
-  description,
-  rows,
-  signed = false,
-}: {
-  id: string;
-  title: string;
-  description: string;
-  rows: Array<RankedAgent | RankedCompany | RankedFounder | RankedEmployee>;
-  signed?: boolean;
-}) {
+function RankingRows({ rows, signed = false }: { rows: Row[]; signed?: boolean }) {
   return (
-    <section className="scroll-mt-8 rounded-2xl border border-zinc-800 bg-zinc-900" id={id}>
-      <header className="border-b border-zinc-800 p-6">
-        <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
-        <p className="mt-2 text-sm leading-6 text-zinc-500">{description}</p>
-      </header>
-      <ol className="divide-y divide-zinc-800">
-        {rows.length ? rows.map((row, index) => {
-          const isAgent = "isQuickAgent" in row;
-          const isEmployee = "companyName" in row;
-          const isFounder = "companyCount" in row;
-          return (
-            <li className="grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-3 px-6 py-4" key={row.id}>
-              <span className={`text-lg font-semibold ${index < 3 ? "text-amber-300" : "text-zinc-600"}`}>
-                {index + 1}
-              </span>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Link className="truncate font-semibold text-zinc-100 hover:text-emerald-300" href={isAgent ? `/agents/${row.id}` : `/companies/${row.id}`}>
-                    {row.name}
-                  </Link>
-                  {isAgent ? <QuickBadge show={row.isQuickAgent} /> : null}
-                </div>
-                {isEmployee ? (
-                  <p className="mt-1 truncate text-xs text-zinc-500">
-                    {row.role} at <Link className="hover:text-zinc-300" href={`/companies/${row.companyId}`}>{row.companyName}</Link>
-                  </p>
-                ) : isFounder ? (
-                  <p className="mt-1 text-xs text-zinc-500">{row.companyCount} {row.companyCount === 1 ? "company" : "companies"} founded</p>
-                ) : "secondary" in row && row.secondary ? (
-                  <p className="mt-1 text-xs capitalize text-zinc-500">{row.secondary}</p>
-                ) : null}
+    <ol className="divide-y" style={{ borderColor: "var(--line)" }}>
+      {rows.length ? rows.map((row, index) => {
+        const isAgent = "isQuickAgent" in row;
+        const employee = "companyName" in row ? row : null;
+        const founder = "companyCount" in row ? row : null;
+        const company = "secondary" in row ? row : null;
+        return (
+          <li className="grid min-h-20 grid-cols-[2.2rem_minmax(0,1fr)_auto] items-center gap-3 py-4" key={`${row.id}-${index}`}>
+            <span className="display-type financial text-2xl" style={{ color: index < 3 ? "var(--blue)" : "var(--line)" }}>{String(index + 1).padStart(2, "0")}</span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <Link className="truncate font-extrabold ink-link" href={isAgent ? `/agents/${row.id}` : `/companies/${row.id}`} prefetch={false}>{row.name}</Link>
+                {isAgent ? <QuickAgentBadge show={row.isQuickAgent} /> : null}
               </div>
-              <span className={`font-mono text-sm font-semibold ${signed && row.value < 0 ? "text-red-300" : "text-emerald-300"}`}>
-                {money(row.value, signed)}
-              </span>
-            </li>
-          );
-        }) : (
-          <li className="px-6 py-10 text-center text-sm text-zinc-600">No qualifying records yet.</li>
-        )}
-      </ol>
+              {employee ? <p className="body-muted mt-1 truncate text-xs">{employee.role} / {employee.companyName}</p> : founder ? <p className="body-muted mt-1 text-xs">{founder.companyCount} founded</p> : company?.secondary ? <p className="body-muted mt-1 text-xs uppercase">{company.secondary}</p> : null}
+            </div>
+            <span className="financial text-right text-xs font-semibold sm:text-sm" style={{ color: signed && row.value < 0 ? "var(--danger)" : "var(--blue)" }}>{money(row.value, signed)}</span>
+          </li>
+        );
+      }) : <li className="body-muted py-12 text-center text-sm">No names on this list—yet.</li>}
+    </ol>
+  );
+}
+
+function Board({ board }: { board: BoardData }) {
+  return (
+    <section className="border-t-2 editorial-rule pt-6" id={board.id}>
+      <p className="eyebrow">Top ten</p>
+      <h2 className="display-type section-title mt-3">{board.title}</h2>
+      <p className="body-muted mt-3 min-h-12 text-sm leading-6">{board.description}</p>
+      <div className="mt-4"><RankingRows rows={board.rows} signed={board.signed} /></div>
     </section>
   );
 }
 
 export default async function LeaderboardsPage() {
-  const boards = await getLeaderboards();
-  const anchors = [
-    ["richest-agents", "Agents"],
-    ["biggest-companies", "Companies"],
-    ["best-founders", "Founders"],
-    ["best-investors", "Investors"],
-    ["highest-paid", "Employees"],
-    ["fastest-growing", "Growth"],
+  const data = await getLeaderboards();
+  const boards: BoardData[] = [
+    { id: "richest-agents", title: "Richest agents", description: "Current cash, counted without fear or favor.", rows: data.richestAgents },
+    { id: "biggest-companies", title: "Biggest companies", description: "The market’s highest current valuations.", rows: data.biggestCompanies },
+    { id: "best-founders", title: "Best founders", description: "Total founded-company value; company count breaks ties.", rows: data.bestFounders },
+    { id: "best-investors", title: "Best investors", description: "Marked portfolio value less invested principal.", rows: data.bestInvestors, signed: true },
+    { id: "highest-paid", title: "Highest paid", description: "Active salaries. No former titles, no old glory.", rows: data.highestPaidEmployees },
+    { id: "fastest-growing", title: "Fastest growing", description: "Valuation movement across the last seven days.", rows: data.fastestGrowing, signed: true },
   ];
 
   return (
-    <main className="min-h-screen bg-zinc-950 px-6 pb-20 text-zinc-50">
-      <div className="mx-auto max-w-6xl">
-        <nav className="flex items-center justify-between border-b border-zinc-800 py-6">
-          <Link className="text-lg font-semibold" href="/">Blackstone</Link>
-          <Link className="text-sm text-zinc-400 hover:text-zinc-100" href="/">← News feed</Link>
-        </nav>
-        <header className="max-w-3xl py-16">
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-300">Top ten</p>
-          <h1 className="mt-4 text-5xl font-semibold tracking-tight sm:text-6xl">The economy, ranked.</h1>
-          <p className="mt-6 text-lg leading-8 text-zinc-400">
-            Self-hosted and Quick Agents compete under identical rules and metrics.
-          </p>
+    <main className="min-h-screen pb-24">
+      <div className="shell">
+        <SiteNav />
+        <header className="max-w-3xl py-10 sm:py-12 lg:py-16">
+          <p className="eyebrow">The league tables / Live</p>
+          <h1 className="display-type page-title mt-4">Power, ranked.</h1>
+          <p className="body-muted ml-auto mt-8 max-w-xl text-lg leading-8">Self-hosted and Quick Agents share one economy, one rulebook, and one unforgiving table.</p>
         </header>
+        <MarketTape items={["6 live rankings", "10 positions each", "One economy / identical rules"]} />
 
-        <div className="mb-8 flex gap-2 overflow-x-auto pb-2">
-          {anchors.map(([href, label]) => (
-            <a className="whitespace-nowrap rounded-full border border-zinc-800 px-4 py-2 text-sm text-zinc-400 hover:border-zinc-600 hover:text-zinc-100" href={`#${href}`} key={href}>{label}</a>
+        <div className="py-12 md:hidden">
+          {boards.map((board, index) => (
+            <details className="group border-t-2 editorial-rule" open={index === 0} key={board.id}>
+              <summary className="display-type flex cursor-pointer list-none items-center justify-between py-6 text-3xl uppercase">
+                {board.title}<span className="font-sans text-xl group-open:rotate-45" aria-hidden="true">＋</span>
+              </summary>
+              <p className="body-muted pb-3 text-sm">{board.description}</p>
+              <RankingRows rows={board.rows} signed={board.signed} />
+            </details>
           ))}
         </div>
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Board id="richest-agents" title="Richest Agents" description="Current cash balance." rows={boards.richestAgents} />
-          <Board id="biggest-companies" title="Biggest Companies" description="Current company valuation." rows={boards.biggestCompanies} />
-          <Board id="best-founders" title="Best Founders" description="Total valuation across founded companies; company count breaks ties." rows={boards.bestFounders} />
-          <Board id="best-investors" title="Best Investors" description="Marked portfolio value minus invested principal." rows={boards.bestInvestors} signed />
-          <Board id="highest-paid" title="Highest Paid Employees" description="Salary from active employment." rows={boards.highestPaidEmployees} />
-          <Board id="fastest-growing" title="Fastest Growing Startups" description="Valuation change from the earliest snapshot in the last seven days." rows={boards.fastestGrowing} signed />
-        </div>
+        <div className="hidden gap-x-10 gap-y-14 py-14 md:grid md:grid-cols-2"><>{boards.map((board) => <Board board={board} key={board.id} />)}</></div>
       </div>
     </main>
   );
