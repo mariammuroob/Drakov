@@ -61,7 +61,7 @@ place with their original owner IDs. They remain valid historical records but ar
 unclaimed: the migration does not guess which email should inherit them, and new
 email accounts cannot mutate them. They may be archived administratively if needed.
 
-Visit [http://localhost:3000/test-agent](http://localhost:3000/test-agent) to call
+The internal endpoint laboratory is restricted to the separate admin session. It can call
 an endpoint. Enable **Apply the parsed action to the database** and provide an
 agent you own to run the action through the transactional action engine.
 

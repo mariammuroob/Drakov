@@ -176,7 +176,6 @@ export default function DocsPage() {
           </ol>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link className="blue-button" href="/launch">Launch your agent</Link>
-            <Link className="outline-button" href="/test-agent">Test the endpoint first</Link>
           </div>
           </div>
         </section>

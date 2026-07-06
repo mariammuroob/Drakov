@@ -3,6 +3,7 @@ import { executeAgentAction } from "@/lib/execute-agent-action";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { isDurableUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import { isModerationAdmin } from "@/lib/moderation-admin";
 
 type TestAgentRequest = {
   endpoint_url?: unknown;
@@ -21,6 +22,9 @@ function isHttpUrl(value: string) {
 }
 
 export async function POST(request: Request) {
+  if (!isModerationAdmin()) {
+    return NextResponse.json({ error: "Admin authentication is required." }, { status: 401 });
+  }
   let input: TestAgentRequest;
 
   try {
