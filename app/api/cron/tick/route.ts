@@ -4,6 +4,7 @@ import { executeAgentAction } from "@/lib/execute-agent-action";
 import { runNpcTick } from "@/lib/run-npc-tick";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -35,6 +36,15 @@ type Company = {
 };
 
 type TickError = { agentId?: string; phase: string; message: string };
+
+function reportTickFailure(error: unknown, context: TickError & { tickKey: string }) {
+  const exception = error instanceof Error ? error : new Error(context.message);
+  console.error("Blackstone tick step failed", context);
+  Sentry.captureException(exception, {
+    tags: { operation: "tick", phase: context.phase },
+    extra: { tickKey: context.tickKey, agentId: context.agentId, message: context.message },
+  });
+}
 
 function serviceClient() {
   const url = process.env.SUPABASE_URL;
@@ -79,6 +89,7 @@ export async function GET(request: Request) {
   const errors: TickError[] = [];
   const actionCounts: Record<string, number> = {};
   let processed = 0;
+  let phase = "create_tick_run";
 
   const { data: tickRun, error: tickError } = await supabase
     .from("tick_runs")
@@ -90,11 +101,14 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: true, skipped: true, reason: "Tick already started." });
   }
   if (tickError || !tickRun) {
-    throw new Error(tickError?.message ?? "Could not create tick run.");
+    const error = new Error(tickError?.message ?? "Could not create tick run.");
+    reportTickFailure(error, { tickKey: currentTickKey, phase, message: error.message });
+    throw error;
   }
   const tickRunId = tickRun.id;
 
   try {
+    phase = "load_world_state";
     const cutoff = new Date(now.getTime() - TICK_INTERVAL_HOURS * 60 * 60 * 1_000).toISOString();
     const [agentsResult, companiesResult, employmentsResult, jobsResult, acquisitionsResult] =
       await Promise.all([
@@ -158,7 +172,7 @@ export async function GET(request: Request) {
     }
 
     async function finish(agentId: string, action: string, error?: string) {
-      await supabase
+      const { error: finishError } = await supabase
         .from("agent_tick_actions")
         .update({
           action,
@@ -168,6 +182,7 @@ export async function GET(request: Request) {
         })
         .eq("tick_run_id", tickRunId)
         .eq("agent_id", agentId);
+      if (finishError) throw new Error(`Could not finalize agent tick action: ${finishError.message}`);
     }
 
     // Acquisition decisions are actions too; each target resolves at most one offer per tick.
@@ -207,6 +222,7 @@ export async function GET(request: Request) {
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown acquisition error";
         errors.push({ agentId: targetAgent.id, phase: "acquisition", message });
+        reportTickFailure(error, { tickKey: currentTickKey, agentId: targetAgent.id, phase: "acquisition", message });
         await finish(targetAgent.id, "acquisition_decision", message);
       }
     }
@@ -249,23 +265,30 @@ export async function GET(request: Request) {
         } catch (error) {
           const message = error instanceof Error ? error.message : "Unknown action error";
           errors.push({ agentId: agent.id, phase: "action", message });
+          reportTickFailure(error, { tickKey: currentTickKey, agentId: agent.id, phase: "action", message });
           await finish(agent.id, actionName, message);
         }
       },
     );
 
+    phase = "npc_actions";
     const npcResult = await runNpcTick(tickRunId);
     processed += npcResult.processed;
     errors.push(...npcResult.errors);
+    for (const npcError of npcResult.errors) {
+      reportTickFailure(new Error(npcError.message), { tickKey: currentTickKey, ...npcError });
+    }
     for (const [action, count] of Object.entries(npcResult.actionCounts)) {
       actionCounts[action] = (actionCounts[action] ?? 0) + count;
     }
 
+    phase = "valuation_snapshot";
     const { error: snapshotError } = await supabase.rpc("capture_company_valuations", {
       p_captured_at: currentTickKey,
     });
     if (snapshotError) {
       errors.push({ phase: "valuation_snapshot", message: snapshotError.message });
+      reportTickFailure(snapshotError, { tickKey: currentTickKey, phase: "valuation_snapshot", message: snapshotError.message });
     }
 
     const summary = {
@@ -276,33 +299,43 @@ export async function GET(request: Request) {
       errors,
     };
     console.log("Blackstone tick completed", summary);
-    await supabase.from("tick_runs").update({
+    phase = "finalize_tick_run";
+    const { error: completionError } = await supabase.from("tick_runs").update({
       status: "completed",
       processed_count: processed,
       action_counts: actionCounts,
       errors,
       completed_at: new Date().toISOString(),
     }).eq("id", tickRunId);
-    await supabase.from("system_logs").insert({
+    if (completionError) throw new Error(`Could not finalize tick run: ${completionError.message}`);
+    phase = "write_system_log";
+    const { error: logError } = await supabase.from("system_logs").insert({
       level: errors.length ? "warning" : "info",
       message: `Tick processed ${processed} agents with ${errors.length} errors.`,
       metadata: summary,
     });
+    if (logError) throw new Error(`Could not write tick system log: ${logError.message}`);
 
     return NextResponse.json({ ok: true, ...summary });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown tick failure";
-    console.error("Blackstone tick failed", { tickKey: currentTickKey, message });
-    await supabase.from("tick_runs").update({
+    const failure = { phase, message };
+    errors.push(failure);
+    reportTickFailure(error, { tickKey: currentTickKey, ...failure });
+    const { error: failureUpdateError } = await supabase.from("tick_runs").update({
       status: "failed",
-      errors: [...errors, { phase: "tick", message }],
+      processed_count: processed,
+      action_counts: actionCounts,
+      errors,
       completed_at: new Date().toISOString(),
     }).eq("id", tickRunId);
-    await supabase.from("system_logs").insert({
+    if (failureUpdateError) reportTickFailure(failureUpdateError, { tickKey: currentTickKey, phase: "mark_tick_failed", message: failureUpdateError.message });
+    const { error: failureLogError } = await supabase.from("system_logs").insert({
       level: "error",
       message: "Tick failed.",
-      metadata: { tickKey: currentTickKey, message },
+      metadata: { tickKey: currentTickKey, phase, message, processed, errors },
     });
+    if (failureLogError) reportTickFailure(failureLogError, { tickKey: currentTickKey, phase: "write_failure_log", message: failureLogError.message });
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
