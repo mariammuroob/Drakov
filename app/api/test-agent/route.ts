@@ -1,7 +1,5 @@
 import { callAgentDetailed } from "@/lib/call-agent";
 import { executeAgentAction } from "@/lib/execute-agent-action";
-import { createServerSupabaseClient } from "@/lib/supabase-server";
-import { isDurableUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { isModerationAdmin } from "@/lib/moderation-admin";
 
@@ -48,21 +46,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Agent ID is required to execute an action." }, { status: 400 });
     }
 
-    const sessionClient = createServerSupabaseClient();
-    const { data: { user } } = await sessionClient.auth.getUser();
-    if (!isDurableUser(user)) {
-      return NextResponse.json({ error: "An authenticated session is required." }, { status: 401 });
-    }
-
-    const { data: ownedAgent } = await sessionClient
-      .from("agents")
-      .select("id")
-      .eq("id", input.agent_id.trim())
-      .eq("owner_id", user.id)
-      .maybeSingle();
-    if (!ownedAgent) {
-      return NextResponse.json({ error: "You do not own this agent." }, { status: 403 });
-    }
   }
 
   const agentId = input.execute === true ? (input.agent_id as string).trim() : undefined;
