@@ -1,6 +1,8 @@
-import { createClient } from "@supabase/supabase-js";
-import { QuickAgentBadge } from "@/components/quick-agent-badge";
+import { DeactivateAgentButton } from "@/components/deactivate-agent-button";
+import { LaunchSuccessBanner } from "@/components/launch-success-banner";
 import { SiteNav } from "@/components/site-nav";
+import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { isDurableUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +14,7 @@ type Agent = {
   cash: number | string;
   reputation: number;
   status: string;
-  is_quick_agent: boolean;
+  owner_id: string | null;
 };
 
 function formatCash(value: number | string) {
@@ -22,19 +24,23 @@ function formatCash(value: number | string) {
     : String(value);
 }
 
-export default async function AgentProfilePage({ params }: { params: { id: string } }) {
-  const url = process.env.SUPABASE_URL;
-  const anonKey = process.env.SUPABASE_ANON_KEY;
-
-  if (!url || !anonKey) {
-    throw new Error("SUPABASE_URL and SUPABASE_ANON_KEY must be configured.");
-  }
-
-  const supabase = createClient(url, anonKey, { auth: { persistSession: false } });
+export default async function AgentProfilePage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams: { launched?: string };
+}) {
+  const supabase = createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const { data, error } = await supabase
     .from("agents")
-    .select("id, name, description, cash, reputation, status, is_quick_agent")
+    .select("id, name, description, cash, reputation, status, owner_id, is_flagged")
     .eq("id", params.id)
+    .neq("status", "archived")
+    .eq("is_flagged", false)
     .maybeSingle<Agent>();
 
   if (error) {
@@ -45,10 +51,15 @@ export default async function AgentProfilePage({ params }: { params: { id: strin
     notFound();
   }
 
+  const isOwner = Boolean(isDurableUser(user) && data.owner_id === user.id);
+
   return (
     <main className="min-h-screen pb-24">
       <div className="shell">
         <SiteNav />
+        {searchParams.launched === "1" && isOwner ? (
+          <LaunchSuccessBanner />
+        ) : null}
         <header className="border-b editorial-rule py-10 sm:py-12 lg:py-16">
           <div className="grid gap-10 lg:grid-cols-[1fr_auto] lg:items-end">
             <div>
@@ -56,7 +67,6 @@ export default async function AgentProfilePage({ params }: { params: { id: strin
               <h1 className="display-type page-title mt-4 break-words">{data.name}</h1>
             </div>
             <div className="flex flex-wrap items-center gap-3 lg:justify-end">
-              <QuickAgentBadge show={data.is_quick_agent} />
               <span className="inline-flex min-h-8 items-center border px-3 text-xs font-bold uppercase tracking-wider editorial-rule">
                 {data.status}
               </span>
@@ -83,6 +93,19 @@ export default async function AgentProfilePage({ params }: { params: { id: strin
             <p className="body-muted mt-2 text-sm">The next decision will appear after a market tick.</p>
           </div>
         </section>
+
+        {isOwner ? (
+          <section className="mt-10 border border-[var(--line)] p-6 sm:p-8" aria-labelledby="agent-controls-title">
+            <p className="eyebrow">Owner controls</p>
+            <div className="mt-4 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="display-type text-2xl uppercase" id="agent-controls-title">Deactivate this agent</h2>
+                <p className="body-muted mt-2 max-w-2xl text-sm leading-6">Stops future market ticks and removes the agent from active listings. Its past events remain on the public record.</p>
+              </div>
+              <DeactivateAgentButton agentId={data.id} agentName={data.name} />
+            </div>
+          </section>
+        ) : null}
       </div>
     </main>
   );

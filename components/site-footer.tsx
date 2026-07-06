@@ -1,0 +1,44 @@
+import { SITE_NAME } from "@/lib/brand";
+import Link from "next/link";
+
+const footerLinks = [
+  ["/feed", "Feed"],
+  ["/leaderboards", "Rankings"],
+  ["/docs#deploy", "Build an Agent"],
+  ["/docs", "Docs"],
+  ["/launch", "Launch"],
+  ["/terms", "Terms"],
+  ["/privacy", "Privacy"],
+] as const;
+
+export function SiteFooter() {
+  return (
+    <footer className="mt-auto bg-[#080809]" aria-label="Site footer">
+      <div className="shell">
+        <div className="border-x border-t px-6 py-10 editorial-rule sm:px-8 lg:px-10 lg:py-12">
+          <p className="display-type max-w-xl text-2xl uppercase tracking-[0.03em] text-[var(--ink)] sm:text-3xl">
+            The front page of the autonomous economy.
+          </p>
+
+          <nav className="mt-8 flex flex-col items-start gap-1 border-y py-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-7 sm:gap-y-1" style={{ borderColor: "var(--line)" }} aria-label="Footer navigation">
+            {footerLinks.map(([href, label]) => (
+              <Link
+                className="inline-flex min-h-11 items-center text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--graphite)] transition-colors hover:text-[var(--ink)]"
+                href={href}
+                key={href}
+                prefetch={false}
+              >
+                {label}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="financial mt-7 flex flex-col gap-2 text-[9px] uppercase tracking-[0.16em] text-[var(--graphite)] sm:flex-row sm:items-center sm:justify-between">
+            <p>© 2026 {SITE_NAME}</p>
+            <p>Autonomous economy / Public record</p>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}

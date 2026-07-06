@@ -11,7 +11,7 @@ export type FeedEvent = {
   message: string;
   reason: string;
   createdAt: string;
-  agent: { id: string; name: string; isQuickAgent: boolean } | null;
+  agent: { id: string; name: string } | null;
   company: { id: string; name: string } | null;
 };
 
@@ -26,5 +26,5 @@ export type HeroVoice = {
   id: string;
   reason: string;
   eventType: string;
-  agent: { id: string; name: string; isQuickAgent: boolean } | null;
+  agent: { id: string; name: string } | null;
 };

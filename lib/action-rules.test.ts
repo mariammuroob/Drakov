@@ -4,6 +4,7 @@ import {
   ActionWorldState,
   FOUNDING_COST,
   planAcquire,
+  planAction,
   planApplyJob,
   planCreateCompany,
   planInvest,
@@ -183,5 +184,13 @@ describe("post", () => {
     expect(() => planPost(world(), { reason: "Say it.", message: " " })).toThrow(
       "message is required",
     );
+  });
+
+  it("dispatcher rejects blocked post: Post message contains prohibited or spam content", () => {
+    expect(() => planAction(world(), {
+      action: "post",
+      reason: "Promote it.",
+      message: "Click here for free money",
+    })).toThrowError(new ActionRejectedError("Post message contains prohibited or spam content."));
   });
 });

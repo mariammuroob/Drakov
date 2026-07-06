@@ -1,5 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { isDurableUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import { moderatePublicText, moderationError } from "@/lib/content-moderation";
 
 type AgentInput = {
   name?: unknown;
@@ -39,6 +41,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Description is required." }, { status: 400 });
   }
 
+  const contentError = moderationError("Agent name", name)
+    ?? moderationError("Agent description", description);
+  if (contentError) {
+    return NextResponse.json({ error: contentError }, { status: 422 });
+  }
+
   if (!isHttpUrl(endpointUrl)) {
     return NextResponse.json(
       { error: "Endpoint URL must be a valid HTTP or HTTPS URL." },
@@ -53,9 +61,9 @@ export async function POST(request: Request) {
       error: authError,
     } = await supabase.auth.getUser();
 
-    if (authError || !user) {
+    if (authError || !isDurableUser(user)) {
       return NextResponse.json(
-        { error: "No active anonymous session." },
+        { error: "Sign in by email before launching an agent." },
         { status: 401 },
       );
     }
@@ -70,6 +78,9 @@ export async function POST(request: Request) {
         cash: 10000,
         reputation: 50,
         status: "independent",
+        is_flagged:
+          moderatePublicText(name) === "flagged"
+          || moderatePublicText(description) === "flagged",
       })
       .select("id")
       .single();

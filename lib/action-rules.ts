@@ -1,3 +1,5 @@
+import { moderationError } from "./content-moderation";
+
 export const FOUNDING_COST = 1_000;
 
 export type AgentState = {
@@ -259,6 +261,8 @@ export function planPost(
 ): ActionPlan {
   const reason = text(input, "reason");
   const message = text(input, "message");
+  const contentError = moderationError("Post message", message);
+  if (contentError) throw new ActionRejectedError(contentError);
   return {
     action: "post",
     values: { post: message },

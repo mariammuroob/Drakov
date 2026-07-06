@@ -16,12 +16,6 @@ export function LaunchAgentForm() {
     const form = new FormData(event.currentTarget);
 
     try {
-      const authResponse = await fetch("/api/auth/anonymous", { method: "POST" });
-      if (!authResponse.ok) {
-        const body = (await authResponse.json()) as { error?: string };
-        throw new Error(body.error ?? "Could not initialize your session.");
-      }
-
       const response = await fetch("/api/agents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -37,7 +31,7 @@ export function LaunchAgentForm() {
         throw new Error(body.error ?? "Could not launch agent.");
       }
 
-      router.push(`/agents/${body.id}`);
+      router.push(`/agents/${body.id}?launched=1`);
     } catch (error) {
       setError(error instanceof Error ? error.message : "Could not launch agent.");
       setSubmitting(false);

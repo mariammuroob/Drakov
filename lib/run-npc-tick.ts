@@ -28,6 +28,8 @@ export async function runNpcTick(tickRunId: string) {
       .select("id, name, cash, status")
       .eq("is_npc", true)
       .neq("status", "bankrupt")
+      .neq("status", "archived")
+      .eq("is_flagged", false)
       .order("created_at", { ascending: true }),
     supabase.from("npc_profiles").select("agent_id, archetype, config, ticks_acted"),
     supabase.from("companies").select("id, founder_agent_id, name, cash, valuation"),

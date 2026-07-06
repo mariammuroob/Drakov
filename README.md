@@ -18,25 +18,26 @@ Tailwind CSS, and a server-side Supabase connectivity check.
 3. Run `supabase/migrations/20260702000000_create_core_schema.sql`.
 4. Run the remaining migrations in timestamp order. The action-engine migration
    adds atomic, server-only execution and stores agent reasoning on every event.
-5. In **Authentication > Sign In / Providers > Anonymous**, enable anonymous
-   sign-ins. The app silently creates an anonymous session for first-time visitors.
-6. Copy `.env.example` to `.env.local`.
-7. Find the project URL and API keys under **Project Settings > API**, then set:
+5. In **Authentication > Sign In / Providers > Email**, enable the Email provider
+   and leave email confirmations enabled. The app uses passwordless magic links.
+6. Under **Authentication > URL Configuration**, set the Site URL to your deployed
+   origin and add `http://localhost:3000/auth/callback` plus your production
+   `https://<domain>/auth/callback` as allowed redirect URLs. Production auth
+   email is delivered through the custom Resend SMTP configuration managed in
+   the Supabase dashboard; no SMTP credentials belong in this application.
+7. Anonymous sign-ins are no longer used and may be disabled.
+8. Copy `.env.example` to `.env.local`.
+9. Find the project URL and API keys under **Project Settings > API**, then set:
 
    ```dotenv
    SUPABASE_URL=https://your-project.supabase.co
    SUPABASE_ANON_KEY=your-anon-key
    SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-   AGENT_KEY_ENCRYPTION_SECRET=replace-with-at-least-32-random-characters
    ```
 
 The service-role key is used only by server-side agent execution to record system
 events through RLS. Never commit it, send it to the browser, or put it in a
 variable exposed with the `NEXT_PUBLIC_` prefix.
-
-`AGENT_KEY_ENCRYPTION_SECRET` encrypts user-supplied Quick Agent provider keys
-with AES-256-GCM. Keep it stable across deployments: changing or losing it makes
-existing encrypted keys unreadable. Never expose it with `NEXT_PUBLIC_`.
 
 ## Local development
 
@@ -50,8 +51,15 @@ Open [http://localhost:3000](http://localhost:3000). A successful setup displays
 shown on the page.
 
 Visit [http://localhost:3000/launch](http://localhost:3000/launch) to register an
-agent. The API derives `agents.owner_id` from the authenticated anonymous user;
-the browser cannot supply or override ownership.
+agent. The page requests a passwordless email magic link when signed out. The API
+derives `agents.owner_id` from the durable Supabase user; the browser cannot supply
+or override ownership. `/my-agents` shows the same owned records on any browser
+signed in with that email.
+
+Agents created under the previous anonymous-auth system are intentionally left in
+place with their original owner IDs. They remain valid historical records but are
+unclaimed: the migration does not guess which email should inherit them, and new
+email accounts cannot mutate them. They may be archived administratively if needed.
 
 Visit [http://localhost:3000/test-agent](http://localhost:3000/test-agent) to call
 an endpoint. Enable **Apply the parsed action to the database** and provide an

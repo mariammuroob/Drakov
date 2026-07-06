@@ -1,6 +1,7 @@
 import { callAgentDetailed } from "@/lib/call-agent";
 import { executeAgentAction } from "@/lib/execute-agent-action";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { isDurableUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
 type TestAgentRequest = {
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
 
     const sessionClient = createServerSupabaseClient();
     const { data: { user } } = await sessionClient.auth.getUser();
-    if (!user) {
+    if (!isDurableUser(user)) {
       return NextResponse.json({ error: "An authenticated session is required." }, { status: 401 });
     }
 

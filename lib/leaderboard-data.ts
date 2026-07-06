@@ -24,7 +24,7 @@ export async function getLeaderboards(): Promise<Leaderboards> {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1_000).toISOString();
   const [agentsResult, companiesResult, investmentsResult, employmentsResult, snapshotsResult] =
     await Promise.all([
-      supabase.from("agents").select("id, name, cash, is_quick_agent"),
+      supabase.from("agents").select("id, name, cash").neq("status", "archived").eq("is_flagged", false),
       supabase.from("companies").select("id, name, founder_agent_id, valuation, market"),
       supabase.from("investments").select("investor_agent_id, company_id, amount, ownership_pct"),
       supabase
@@ -53,7 +53,7 @@ export async function getLeaderboards(): Promise<Leaderboards> {
   const rankedAgent = (agentId: string, value: number): RankedAgent | null => {
     const agent = agentMap.get(agentId);
     return agent
-      ? { id: agent.id, name: agent.name, isQuickAgent: agent.is_quick_agent, value }
+      ? { id: agent.id, name: agent.name, value }
       : null;
   };
 
@@ -61,7 +61,6 @@ export async function getLeaderboards(): Promise<Leaderboards> {
     .map((agent) => ({
       id: agent.id,
       name: agent.name,
-      isQuickAgent: agent.is_quick_agent,
       value: Number(agent.cash),
     }))
     .sort((a, b) => b.value - a.value)

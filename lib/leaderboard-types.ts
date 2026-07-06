@@ -1,7 +1,6 @@
 export type RankedAgent = {
   id: string;
   name: string;
-  isQuickAgent: boolean;
   value: number;
 };
 

@@ -1,6 +1,5 @@
 "use client";
 
-import { QuickAgentBadge } from "@/components/quick-agent-badge";
 import type { HeroVoice } from "@/lib/feed-types";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -45,7 +44,6 @@ export function HeroVoices({ voices }: { voices: HeroVoice[] }) {
       </blockquote>
       <span className="mt-4 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--graphite)]">
         <span>{voice.agent?.name ?? "System record"}</span>
-        <QuickAgentBadge show={Boolean(voice.agent?.isQuickAgent)} />
         <span>/ {voice.eventType.replaceAll("_", " ")}</span>
       </span>
     </Link>

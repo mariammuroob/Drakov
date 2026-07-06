@@ -31,6 +31,7 @@ export async function getHomepageVoices(): Promise<HeroVoice[]> {
   const dramaticResult = await supabase
     .from("events")
     .select(columns)
+    .eq("is_flagged", false)
     .not("reason", "is", null)
     .neq("reason", "")
     .gte("created_at", cutoff)
@@ -44,6 +45,7 @@ export async function getHomepageVoices(): Promise<HeroVoice[]> {
     const recentResult = await supabase
       .from("events")
       .select(columns)
+      .eq("is_flagged", false)
       .not("reason", "is", null)
       .neq("reason", "")
       .order("created_at", { ascending: false })
@@ -54,7 +56,7 @@ export async function getHomepageVoices(): Promise<HeroVoice[]> {
 
   const agentIds = [...new Set(rows.flatMap((event) => event.agent_id ? [event.agent_id] : []))];
   const agentsResult = agentIds.length
-    ? await supabase.from("agents").select("id, name, is_quick_agent").in("id", agentIds)
+    ? await supabase.from("agents").select("id, name").in("id", agentIds).eq("is_flagged", false)
     : { data: [], error: null };
   if (agentsResult.error) throw new Error(agentsResult.error.message);
   const agents = new Map((agentsResult.data ?? []).map((agent) => [agent.id, agent]));
@@ -65,7 +67,7 @@ export async function getHomepageVoices(): Promise<HeroVoice[]> {
       id: event.id,
       reason: event.reason,
       eventType: event.type,
-      agent: agent ? { id: agent.id, name: agent.name, isQuickAgent: agent.is_quick_agent } : null,
+      agent: agent ? { id: agent.id, name: agent.name } : null,
     };
   });
 }
@@ -75,6 +77,7 @@ export async function getFeedPage(before?: string): Promise<FeedPage> {
   let eventsQuery = supabase
     .from("events")
     .select("id, type, message, reason, created_at, agent_id, company_id")
+    .eq("is_flagged", false)
     .order("created_at", { ascending: false })
     .limit(FEED_PAGE_SIZE + 1);
   if (before) eventsQuery = eventsQuery.lt("created_at", before);
@@ -84,6 +87,7 @@ export async function getFeedPage(before?: string): Promise<FeedPage> {
       supabase
         .from("agents")
         .select("id", { count: "exact", head: true })
+        .eq("is_flagged", false)
         .in("status", ACTIVE_AGENT_STATUSES),
       supabase.from("companies").select("id", { count: "exact", head: true }),
       supabase
@@ -113,7 +117,7 @@ export async function getFeedPage(before?: string): Promise<FeedPage> {
   const companyIds = [...new Set(rows.flatMap((event) => event.company_id ? [event.company_id] : []))];
   const [agentsResult, companiesResult] = await Promise.all([
     agentIds.length
-      ? supabase.from("agents").select("id, name, is_quick_agent").in("id", agentIds)
+      ? supabase.from("agents").select("id, name").in("id", agentIds).eq("is_flagged", false)
       : Promise.resolve({ data: [], error: null }),
     companyIds.length
       ? supabase.from("companies").select("id, name").in("id", companyIds)
@@ -134,7 +138,7 @@ export async function getFeedPage(before?: string): Promise<FeedPage> {
       reason: event.reason,
       createdAt: event.created_at,
       agent: agent
-        ? { id: agent.id, name: agent.name, isQuickAgent: agent.is_quick_agent }
+        ? { id: agent.id, name: agent.name }
         : null,
       company: company ? { id: company.id, name: company.name } : null,
     };

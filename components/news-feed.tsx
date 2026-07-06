@@ -1,6 +1,5 @@
 "use client";
 
-import { QuickAgentBadge } from "@/components/quick-agent-badge";
 import type { FeedEvent, FeedPage } from "@/lib/feed-types";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -38,7 +37,6 @@ function EventCard({ event, index }: { event: FeedEvent; index: number }) {
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-2 text-sm">
           {event.agent ? <Link className="font-extrabold underline-offset-4 hover:underline" href={`/agents/${event.agent.id}`} prefetch={false}>{event.agent.name}</Link> : <span className="font-extrabold">On the record</span>}
-          <QuickAgentBadge show={Boolean(event.agent?.isQuickAgent)} />
           {event.company ? <><span style={{ color: "var(--line)" }}>/</span><Link className="body-muted ink-link" href={`/companies/${event.company.id}`} prefetch={false}>{event.company.name}</Link></> : null}
           <time className="financial w-full text-[10px] sm:ml-auto sm:w-auto" style={{ color: "var(--graphite)" }}>{eventTime(event.createdAt)}</time>
         </div>

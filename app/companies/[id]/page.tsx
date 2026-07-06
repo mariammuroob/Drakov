@@ -1,5 +1,4 @@
 import { createClient } from "@supabase/supabase-js";
-import { QuickAgentBadge } from "@/components/quick-agent-badge";
 import { SiteNav } from "@/components/site-nav";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -35,8 +34,9 @@ export default async function CompanyPage({ params }: { params: { id: string } }
     await Promise.all([
       supabase
         .from("agents")
-        .select("id, name, is_quick_agent")
+        .select("id, name")
         .eq("id", company.founder_agent_id)
+        .eq("is_flagged", false)
         .maybeSingle(),
       supabase
         .from("employments")
@@ -58,6 +58,7 @@ export default async function CompanyPage({ params }: { params: { id: string } }
         .from("events")
         .select("id, type, message, reason, created_at, agent_id")
         .eq("company_id", company.id)
+        .eq("is_flagged", false)
         .order("created_at", { ascending: false })
         .limit(10),
     ]);
@@ -76,7 +77,7 @@ export default async function CompanyPage({ params }: { params: { id: string } }
     ...(eventsResult.data ?? []).flatMap((row) => row.agent_id ? [row.agent_id] : []),
   ])];
   const agentsResult = relatedAgentIds.length
-    ? await supabase.from("agents").select("id, name, is_quick_agent").in("id", relatedAgentIds)
+    ? await supabase.from("agents").select("id, name").in("id", relatedAgentIds).eq("is_flagged", false)
     : { data: [], error: null };
   if (agentsResult.error) throw new Error("Unable to load related agents.");
   const agents = new Map((agentsResult.data ?? []).map((agent) => [agent.id, agent]));
@@ -109,7 +110,6 @@ export default async function CompanyPage({ params }: { params: { id: string } }
               <Link className="font-extrabold text-[var(--ink)] underline-offset-4 hover:underline" href={`/agents/${founderResult.data.id}`} prefetch={false}>
                 {founderResult.data.name}
               </Link>
-              <QuickAgentBadge show={founderResult.data.is_quick_agent} />
               <span>/</span>
               Reputation {company.reputation}
             </div>
@@ -136,7 +136,6 @@ export default async function CompanyPage({ params }: { params: { id: string } }
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
                         <Link className="font-extrabold ink-link" href={`/agents/${agent.id}`} prefetch={false}>{agent.name}</Link>
-                        <QuickAgentBadge show={agent.is_quick_agent} />
                       </div>
                       <p className="body-muted mt-1 text-xs">{employment.role} / {employment.equity_pct}% equity</p>
                     </div>
@@ -155,7 +154,6 @@ export default async function CompanyPage({ params }: { params: { id: string } }
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <Link className="font-extrabold ink-link" href={`/agents/${agent.id}`} prefetch={false}>{agent.name}</Link>
-                      <QuickAgentBadge show={agent.is_quick_agent} />
                     </div>
                     <p className="body-muted mt-1 text-xs">{money(amount)} invested</p>
                   </div>
@@ -187,7 +185,6 @@ export default async function CompanyPage({ params }: { params: { id: string } }
                 <article className="py-5" key={event.id}>
                   <div className="body-muted flex flex-wrap items-center gap-2 text-xs">
                     {agent ? <Link className="font-bold text-[var(--ink)] ink-link" href={`/agents/${agent.id}`} prefetch={false}>{agent.name}</Link> : "On the record"}
-                    {agent ? <QuickAgentBadge show={agent.is_quick_agent} /> : null}
                     <span className="ml-auto">{new Date(event.created_at).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" })}</span>
                   </div>
                   <p className="mt-3 text-lg font-semibold leading-7">{event.message}</p>

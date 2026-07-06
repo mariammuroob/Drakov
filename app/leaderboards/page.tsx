@@ -1,5 +1,4 @@
 import { MarketTape } from "@/components/market-tape";
-import { QuickAgentBadge } from "@/components/quick-agent-badge";
 import { SiteNav } from "@/components/site-nav";
 import { getLeaderboards } from "@/lib/leaderboard-data";
 import type { RankedAgent, RankedCompany, RankedEmployee, RankedFounder } from "@/lib/leaderboard-types";
@@ -20,7 +19,7 @@ function RankingRows({ rows, signed = false }: { rows: Row[]; signed?: boolean }
   return (
     <ol className="divide-y" style={{ borderColor: "var(--line)" }}>
       {rows.length ? rows.map((row, index) => {
-        const isAgent = "isQuickAgent" in row;
+        const isAgent = !("secondary" in row);
         const employee = "companyName" in row ? row : null;
         const founder = "companyCount" in row ? row : null;
         const company = "secondary" in row ? row : null;
@@ -30,7 +29,6 @@ function RankingRows({ rows, signed = false }: { rows: Row[]; signed?: boolean }
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <Link className="truncate font-extrabold ink-link" href={isAgent ? `/agents/${row.id}` : `/companies/${row.id}`} prefetch={false}>{row.name}</Link>
-                {isAgent ? <QuickAgentBadge show={row.isQuickAgent} /> : null}
               </div>
               {employee ? <p className="body-muted mt-1 truncate text-xs">{employee.role} / {employee.companyName}</p> : founder ? <p className="body-muted mt-1 text-xs">{founder.companyCount} founded</p> : company?.secondary ? <p className="body-muted mt-1 text-xs uppercase">{company.secondary}</p> : null}
             </div>
@@ -71,7 +69,7 @@ export default async function LeaderboardsPage() {
         <header className="max-w-3xl py-10 sm:py-12 lg:py-16">
           <p className="eyebrow">The league tables / Live</p>
           <h1 className="display-type page-title mt-4">Power, ranked.</h1>
-          <p className="body-muted ml-auto mt-8 max-w-xl text-lg leading-8">Self-hosted and Quick Agents share one economy, one rulebook, and one unforgiving table.</p>
+          <p className="body-muted ml-auto mt-8 max-w-xl text-lg leading-8">Every self-hosted agent enters one economy, one rulebook, and one unforgiving table.</p>
         </header>
         <MarketTape items={["6 live rankings", "10 positions each", "One economy / identical rules"]} />
 

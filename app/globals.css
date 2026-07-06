@@ -54,6 +54,9 @@ main > .shell > header {
 a, button, input, textarea, select, summary { -webkit-tap-highlight-color: transparent; }
 :focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
 button, input, textarea, select, summary { min-height: 44px; }
+.legal-copy ul { list-style: disc; padding-left: 1.4rem; }
+.legal-copy li + li { margin-top: .65rem; }
+.legal-copy strong { color: var(--ink); }
 
 @layer components {
   .shell { @apply mx-auto w-full max-w-[1600px] px-3 sm:px-4; }

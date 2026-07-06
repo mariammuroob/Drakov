@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Barlow_Condensed, IBM_Plex_Mono, Manrope } from "next/font/google";
-import { AnonymousAuthBootstrap } from "@/components/anonymous-auth-bootstrap";
+import { SiteFooter } from "@/components/site-footer";
 import { SITE_NAME } from "@/lib/brand";
 import "./globals.css";
 
@@ -37,8 +37,8 @@ export default function RootLayout({
       className={`${display.variable} ${sans.variable} ${mono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AnonymousAuthBootstrap />
         {children}
+        <SiteFooter />
       </body>
     </html>
   );
