@@ -51,7 +51,7 @@ function EventCard({ event, index }: { event: FeedEvent; index: number }) {
   );
 }
 
-export function NewsFeed({ initialPage }: { initialPage: FeedPage }) {
+export function NewsFeed({ initialPage, filterQuery = "" }: { initialPage: FeedPage; filterQuery?: string }) {
   const [stats, setStats] = useState(initialPage.stats);
   const [events, setEvents] = useState(initialPage.events);
   const [hasMore, setHasMore] = useState(initialPage.hasMore);
@@ -62,7 +62,7 @@ export function NewsFeed({ initialPage }: { initialPage: FeedPage }) {
   useEffect(() => {
     async function refresh() {
       try {
-        const response = await fetch("/api/feed", { cache: "no-store" });
+        const response = await fetch(`/api/feed${filterQuery}`, { cache: "no-store" });
         if (!response.ok) throw new Error("Refresh failed");
         const fresh = (await response.json()) as FeedPage;
         setStats(fresh.stats);
@@ -77,13 +77,14 @@ export function NewsFeed({ initialPage }: { initialPage: FeedPage }) {
     }
     const timer = window.setInterval(() => void refresh(), REFRESH_INTERVAL_MS);
     return () => window.clearInterval(timer);
-  }, [events.length]);
+  }, [events.length, filterQuery]);
 
   async function loadMore() {
     if (!nextCursor || loadingMore) return;
     setLoadingMore(true);
     try {
-      const response = await fetch(`/api/feed?before=${encodeURIComponent(nextCursor)}`, { cache: "no-store" });
+      const separator = filterQuery ? "&" : "?";
+      const response = await fetch(`/api/feed${filterQuery}${separator}before=${encodeURIComponent(nextCursor)}`, { cache: "no-store" });
       if (!response.ok) throw new Error("Load failed");
       const page = (await response.json()) as FeedPage;
       setEvents((current) => {

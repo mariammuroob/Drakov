@@ -72,7 +72,10 @@ export async function getHomepageVoices(): Promise<HeroVoice[]> {
   });
 }
 
-export async function getFeedPage(before?: string): Promise<FeedPage> {
+export async function getFeedPage(
+  before?: string,
+  pair?: { agentA: string; agentB: string },
+): Promise<FeedPage> {
   const supabase = client();
   let eventsQuery = supabase
     .from("events")
@@ -81,6 +84,11 @@ export async function getFeedPage(before?: string): Promise<FeedPage> {
     .order("created_at", { ascending: false })
     .limit(FEED_PAGE_SIZE + 1);
   if (before) eventsQuery = eventsQuery.lt("created_at", before);
+  if (pair) {
+    eventsQuery = eventsQuery.or(
+      `and(agent_id.eq.${pair.agentA},counterparty_agent_id.eq.${pair.agentB}),and(agent_id.eq.${pair.agentB},counterparty_agent_id.eq.${pair.agentA})`,
+    );
+  }
 
   const [agentsCount, companiesCount, acquisitionsCount, largestCompany, eventsResult] =
     await Promise.all([

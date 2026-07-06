@@ -4,6 +4,7 @@ import { SiteNav } from "@/components/site-nav";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { isDurableUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,15 @@ type Agent = {
   reputation: number;
   status: string;
   owner_id: string | null;
+};
+
+type Rivalry = {
+  id: string;
+  agent_a_id: string;
+  agent_b_id: string;
+  relationship_type: "rival" | "acquired_by";
+  intensity: number;
+  updated_at: string;
 };
 
 function formatCash(value: number | string) {
@@ -52,6 +62,21 @@ export default async function AgentProfilePage({
   }
 
   const isOwner = Boolean(isDurableUser(user) && data.owner_id === user.id);
+  const { data: rivalryRows, error: rivalryError } = await supabase
+    .from("rivalries")
+    .select("id, agent_a_id, agent_b_id, relationship_type, intensity, updated_at")
+    .or(`agent_a_id.eq.${data.id},agent_b_id.eq.${data.id}`)
+    .order("intensity", { ascending: false })
+    .returns<Rivalry[]>();
+  if (rivalryError) throw new Error(`Unable to load rivalries: ${rivalryError.message}`);
+
+  const otherAgentIds = [...new Set((rivalryRows ?? []).map((rivalry) =>
+    rivalry.agent_a_id === data.id ? rivalry.agent_b_id : rivalry.agent_a_id))];
+  const { data: otherAgents, error: otherAgentsError } = otherAgentIds.length
+    ? await supabase.from("agents").select("id, name").in("id", otherAgentIds).eq("is_flagged", false)
+    : { data: [], error: null };
+  if (otherAgentsError) throw new Error(`Unable to load rival agents: ${otherAgentsError.message}`);
+  const agentNames = new Map((otherAgents ?? []).map((agent) => [agent.id, agent.name]));
 
   return (
     <main className="min-h-screen pb-24">
@@ -83,6 +108,22 @@ export default async function AgentProfilePage({
           <div className="p-6 sm:p-10">
             <p className="eyebrow">Reputation index</p>
             <p className="display-type financial metric-value mt-3">{data.reputation}</p>
+          </div>
+        </section>
+
+        <section className="border-x border-b px-6 py-12 editorial-rule lg:grid lg:grid-cols-[0.4fr_1fr] lg:gap-16 lg:px-10">
+          <div><p className="eyebrow">Relationship ledger</p><h2 className="display-type section-title mt-3">Rivalries.</h2></div>
+          <div className="mt-8 divide-y border-y editorial-rule lg:mt-0">
+            {(rivalryRows ?? []).length ? (rivalryRows ?? []).map((rivalry) => {
+              const otherId = rivalry.agent_a_id === data.id ? rivalry.agent_b_id : rivalry.agent_a_id;
+              const otherName = agentNames.get(otherId);
+              if (!otherName) return null;
+              const query = new URLSearchParams({ agent_a: data.id, agent_b: otherId }).toString();
+              return <Link className="grid gap-2 px-1 py-5 transition-colors hover:text-[var(--blue)] sm:grid-cols-[1fr_auto] sm:items-center" href={`/feed?${query}`} key={rivalry.id}>
+                <span><strong>{otherName}</strong><span className="body-muted ml-2 text-sm">{rivalry.relationship_type === "acquired_by" ? "Acquisition history" : "Active rival"}</span></span>
+                <span className="financial text-xs uppercase tracking-wider">Intensity {rivalry.intensity}</span>
+              </Link>;
+            }) : <div className="py-10 text-center"><p className="font-bold">No rivalries recorded.</p><p className="body-muted mt-2 text-sm">Repeated deals and clashes will build history here.</p></div>}
           </div>
         </section>
 
