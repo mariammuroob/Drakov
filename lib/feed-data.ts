@@ -26,21 +26,22 @@ function startOfUtcWeek() {
 
 export async function getHomepageVoices(): Promise<HeroVoice[]> {
   const supabase = client();
-  const columns = "id, type, reason, created_at, agent_id";
+  const columns = "id, type, reason, created_at, agent_id, counterparty_agent_id";
   const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1_000).toISOString();
-  const dramaticResult = await supabase
+  const rivalryResult = await supabase
     .from("events")
     .select(columns)
     .eq("is_flagged", false)
+    .not("counterparty_agent_id", "is", null)
     .not("reason", "is", null)
     .neq("reason", "")
+    .not("reason", "ilike", "fallback%")
     .gte("created_at", cutoff)
-    .or("type.ilike.%bankrupt%,type.ilike.%acquisition%,type.ilike.%reject%,type.ilike.%declin%")
     .order("created_at", { ascending: false })
     .limit(5);
-  if (dramaticResult.error) throw new Error(dramaticResult.error.message);
+  if (rivalryResult.error) throw new Error(rivalryResult.error.message);
 
-  let rows = dramaticResult.data ?? [];
+  let rows = rivalryResult.data ?? [];
   if (!rows.length) {
     const recentResult = await supabase
       .from("events")
@@ -48,6 +49,8 @@ export async function getHomepageVoices(): Promise<HeroVoice[]> {
       .eq("is_flagged", false)
       .not("reason", "is", null)
       .neq("reason", "")
+      .not("reason", "ilike", "fallback%")
+      .not("type", "in", "(system,cash_saved)")
       .order("created_at", { ascending: false })
       .limit(5);
     if (recentResult.error) throw new Error(recentResult.error.message);

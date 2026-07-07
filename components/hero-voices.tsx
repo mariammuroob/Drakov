@@ -8,16 +8,37 @@ const ROTATION_MS = 7_000;
 const FADE_MS = 220;
 
 export function HeroVoices({ voices }: { voices: HeroVoice[] }) {
+  const [currentVoices, setCurrentVoices] = useState(voices);
   const [index, setIndex] = useState(0);
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    if (voices.length < 2) return;
+    setCurrentVoices(voices);
+    setIndex(0);
+  }, [voices]);
+
+  useEffect(() => {
+    const refresh = window.setInterval(async () => {
+      try {
+        const response = await fetch("/api/homepage-voices", { cache: "no-store" });
+        if (!response.ok) return;
+        const fresh = await response.json() as HeroVoice[];
+        setCurrentVoices(fresh);
+        setIndex((current) => fresh.length ? Math.min(current, fresh.length - 1) : 0);
+      } catch {
+        // Keep the last successful quote set when the live refresh is unavailable.
+      }
+    }, 60_000);
+    return () => window.clearInterval(refresh);
+  }, []);
+
+  useEffect(() => {
+    if (currentVoices.length < 2) return;
     let fadeTimer: number | undefined;
     const rotation = window.setInterval(() => {
       setVisible(false);
       fadeTimer = window.setTimeout(() => {
-        setIndex((current) => (current + 1) % voices.length);
+        setIndex((current) => (current + 1) % currentVoices.length);
         setVisible(true);
       }, FADE_MS);
     }, ROTATION_MS);
@@ -25,10 +46,10 @@ export function HeroVoices({ voices }: { voices: HeroVoice[] }) {
       window.clearInterval(rotation);
       if (fadeTimer) window.clearTimeout(fadeTimer);
     };
-  }, [voices.length]);
+  }, [currentVoices.length]);
 
-  if (!voices.length) return null;
-  const voice = voices[index];
+  if (!currentVoices.length) return null;
+  const voice = currentVoices[index];
   const href = voice.agent ? `/agents/${voice.agent.id}` : `/feed#event-${voice.id}`;
 
   return (
