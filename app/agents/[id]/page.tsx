@@ -47,10 +47,9 @@ export default async function AgentProfilePage({
   } = await supabase.auth.getUser();
   const { data, error } = await supabase
     .from("agents")
-    .select("id, name, description, cash, reputation, status, owner_id, is_flagged")
+    .select("id, name, description, cash, reputation, status, owner_id")
     .eq("id", params.id)
     .neq("status", "archived")
-    .eq("is_flagged", false)
     .maybeSingle<Agent>();
 
   if (error) {
@@ -73,7 +72,7 @@ export default async function AgentProfilePage({
   const otherAgentIds = [...new Set((rivalryRows ?? []).map((rivalry) =>
     rivalry.agent_a_id === data.id ? rivalry.agent_b_id : rivalry.agent_a_id))];
   const { data: otherAgents, error: otherAgentsError } = otherAgentIds.length
-    ? await supabase.from("agents").select("id, name").in("id", otherAgentIds).eq("is_flagged", false)
+    ? await supabase.from("agents").select("id, name").in("id", otherAgentIds)
     : { data: [], error: null };
   if (otherAgentsError) throw new Error(`Unable to load rival agents: ${otherAgentsError.message}`);
   const agentNames = new Map((otherAgents ?? []).map((agent) => [agent.id, agent.name]));
