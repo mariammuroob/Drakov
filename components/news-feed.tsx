@@ -51,7 +51,15 @@ function EventCard({ event, index }: { event: FeedEvent; index: number }) {
   );
 }
 
-export function NewsFeed({ initialPage, filterQuery = "" }: { initialPage: FeedPage; filterQuery?: string }) {
+export function NewsFeed({
+  initialPage,
+  filterQuery = "",
+  compact = false,
+}: {
+  initialPage: FeedPage;
+  filterQuery?: string;
+  compact?: boolean;
+}) {
   const [stats, setStats] = useState(initialPage.stats);
   const [events, setEvents] = useState(initialPage.events);
   const [hasMore, setHasMore] = useState(initialPage.hasMore);
@@ -67,17 +75,24 @@ export function NewsFeed({ initialPage, filterQuery = "" }: { initialPage: FeedP
         const fresh = (await response.json()) as FeedPage;
         setStats(fresh.stats);
         setEvents((current) => {
-          if (current.length <= 20) return fresh.events;
+          if (current.length <= 20) {
+            setHasMore(fresh.hasMore);
+            setNextCursor(fresh.nextCursor);
+            return fresh.events;
+          }
           const ids = new Set(fresh.events.map((event) => event.id));
           return [...fresh.events, ...current.filter((event) => !ids.has(event.id))];
         });
-        if (events.length <= 20) { setHasMore(fresh.hasMore); setNextCursor(fresh.nextCursor); }
         setRefreshError(false);
-      } catch { setRefreshError(true); }
+      } catch {
+        setRefreshError(true);
+      }
     }
+
+    void refresh();
     const timer = window.setInterval(() => void refresh(), REFRESH_INTERVAL_MS);
     return () => window.clearInterval(timer);
-  }, [events.length, filterQuery]);
+  }, [filterQuery]);
 
   async function loadMore() {
     if (!nextCursor || loadingMore) return;
@@ -91,8 +106,13 @@ export function NewsFeed({ initialPage, filterQuery = "" }: { initialPage: FeedP
         const ids = new Set(current.map((event) => event.id));
         return [...current, ...page.events.filter((event) => !ids.has(event.id))];
       });
-      setHasMore(page.hasMore); setNextCursor(page.nextCursor);
-    } catch { setRefreshError(true); } finally { setLoadingMore(false); }
+      setHasMore(page.hasMore);
+      setNextCursor(page.nextCursor);
+    } catch {
+      setRefreshError(true);
+    } finally {
+      setLoadingMore(false);
+    }
   }
 
   const cards = [
@@ -101,6 +121,22 @@ export function NewsFeed({ initialPage, filterQuery = "" }: { initialPage: FeedP
     ["Deals / week", stats.acquisitionsThisWeek.toLocaleString()],
     ["Largest valuation", stats.largestCompany ? money(stats.largestCompany.valuation) : "—"],
   ];
+
+  const feedList = (
+    <div>
+      {events.length ? events.map((event, index) => <EventCard event={event} index={index} key={event.id} />) : (
+        <div className="border-y editorial-rule py-14 text-center">
+          <p className="display-type text-2xl sm:text-3xl">Nothing on the record yet.</p>
+          <p className="body-muted mt-4">{compact ? "No shared events have been recorded for this pair." : "The next tick will break the silence."}</p>
+        </div>
+      )}
+      {hasMore ? <button className="outline-button mt-8 w-full sm:w-auto" type="button" onClick={() => void loadMore()} disabled={loadingMore}>{loadingMore ? "Opening the archive..." : "Continue reading"}</button> : null}
+    </div>
+  );
+
+  if (compact) {
+    return <section className="border-x px-5 pb-12 editorial-rule sm:px-8 lg:px-10 lg:pb-16">{feedList}</section>;
+  }
 
   return (
     <>
@@ -123,15 +159,7 @@ export function NewsFeed({ initialPage, filterQuery = "" }: { initialPage: FeedP
             {refreshError ? "The live wire is reconnecting" : "Live / 60-second refresh"}
           </div>
         </header>
-        <div>
-          {events.length ? events.map((event, index) => <EventCard event={event} index={index} key={event.id} />) : (
-            <div className="border-y editorial-rule py-14 text-center">
-              <p className="display-type text-2xl sm:text-3xl">Nothing on the record—yet.</p>
-              <p className="body-muted mt-4">The next tick will break the silence.</p>
-            </div>
-          )}
-          {hasMore ? <button className="outline-button mt-8 w-full sm:w-auto" type="button" onClick={() => void loadMore()} disabled={loadingMore}>{loadingMore ? "Opening the archive…" : "Continue reading"}</button> : null}
-        </div>
+        {feedList}
       </section>
     </>
   );

@@ -1,12 +1,32 @@
 import { getHomepageVoices } from "@/lib/feed-data";
+import { applyRateLimitHeaders, checkRateLimit, getRequestIp } from "@/lib/rate-limit";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+function jsonResponse(body: unknown, init?: ResponseInit) {
+  const response = NextResponse.json(body, init);
+  response.headers.set("Cache-Control", "no-store, max-age=0");
+  return response;
+}
+
+export async function GET(request: Request) {
+  const rateLimit = await checkRateLimit(`ip:${getRequestIp(request)}`, {
+    prefix: "api:homepage-voices:get",
+    limit: 60,
+    window: "1 m",
+    mode: "sliding",
+  });
+  if (!rateLimit.success) {
+    return applyRateLimitHeaders(
+      jsonResponse({ error: "Rate limit exceeded for featured activity. Please try again shortly." }, { status: 429 }),
+      rateLimit,
+    );
+  }
+
   try {
-    return NextResponse.json(await getHomepageVoices());
+    return applyRateLimitHeaders(jsonResponse(await getHomepageVoices()), rateLimit);
   } catch {
-    return NextResponse.json({ error: "Unable to load featured activity." }, { status: 500 });
+    return applyRateLimitHeaders(jsonResponse({ error: "Unable to load featured activity." }, { status: 500 }), rateLimit);
   }
 }

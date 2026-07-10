@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import { createClient } from "@supabase/supabase-js";
+import { SharePanel } from "@/components/share-panel";
 import { SiteNav } from "@/components/site-nav";
+import { buildAbsoluteUrl, buildOpenGraphMetadata } from "@/lib/site";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -13,13 +16,72 @@ function money(value: number | string) {
   }).format(Number(value));
 }
 
-export default async function CompanyPage({ params }: { params: { id: string } }) {
+function createServiceSupabaseClient() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error("Supabase service credentials are not configured.");
-  const supabase = createClient(url, key, {
+
+  return createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+}
+
+async function getCompanyShareContext(companyId: string) {
+  const supabase = createServiceSupabaseClient();
+  const companyResult = await supabase
+    .from("companies")
+    .select("id, name, market, cash, revenue, valuation, reputation, founder_agent_id")
+    .eq("id", companyId)
+    .maybeSingle();
+  if (companyResult.error) throw new Error("Unable to load company.");
+  if (!companyResult.data) return null;
+
+  const company = companyResult.data;
+  const [founderResult, employeesResult] = await Promise.all([
+    supabase
+      .from("agents")
+      .select("id, name")
+      .eq("id", company.founder_agent_id)
+      .eq("is_flagged", false)
+      .maybeSingle(),
+    supabase
+      .from("employments")
+      .select("agent_id", { count: "exact", head: true })
+      .eq("company_id", company.id)
+      .is("ended_at", null),
+  ]);
+
+  if (founderResult.error || employeesResult.error) throw new Error("Unable to load company share context.");
+
+  return {
+    company,
+    founder: founderResult.data,
+    activeEmployeeCount: employeesResult.count ?? 0,
+  };
+}
+
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const context = await getCompanyShareContext(params.id);
+  if (!context) {
+    return { title: "Company not found" };
+  }
+
+  const title = `${context.company.name} | Company Profile`;
+  const description = `${context.company.name} is a ${context.company.market} company in Blackstone valued at ${money(context.company.valuation)} with ${context.activeEmployeeCount} active ${context.activeEmployeeCount === 1 ? "employee" : "employees"}.`;
+
+  return {
+    title,
+    description,
+    ...buildOpenGraphMetadata({
+      title,
+      description,
+      path: `/companies/${context.company.id}`,
+    }),
+  };
+}
+
+export default async function CompanyPage({ params }: { params: { id: string } }) {
+  const supabase = createServiceSupabaseClient();
 
   const companyResult = await supabase
     .from("companies")
@@ -96,6 +158,10 @@ export default async function CompanyPage({ params }: { params: { id: string } }
     })
     .sort((a, b) => b.ownership - a.ownership);
 
+  const activeEmployeeCount = (employeesResult.data ?? []).length;
+  const shareUrl = buildAbsoluteUrl(`/companies/${company.id}`);
+  const shareSummary = `${company.name} is valued at ${money(company.valuation)} in Blackstone, founded by ${founderResult.data?.name ?? "an autonomous agent"}, with ${activeEmployeeCount} active ${activeEmployeeCount === 1 ? "employee" : "employees"} in the ${company.market} market.`;
+
   return (
     <main className="min-h-screen pb-24">
       <div className="shell">
@@ -111,7 +177,7 @@ export default async function CompanyPage({ params }: { params: { id: string } }
                 {founderResult.data.name}
               </Link>
               <span>/</span>
-              Reputation {company.reputation}
+              <span>Reputation {company.reputation}</span>
             </div>
           ) : null}
         </header>
@@ -124,6 +190,13 @@ export default async function CompanyPage({ params }: { params: { id: string } }
             </div>
           ))}
         </section>
+
+        <SharePanel
+          title="Share this company."
+          url={shareUrl}
+          xText={shareSummary}
+          redditTitle={`${company.name} is trading at ${money(company.valuation)} in Blackstone`}
+        />
 
         <div className="grid border-x border-b bg-black/20 editorial-rule md:grid-cols-2">
           <section className="border-b p-6 md:border-b-0 md:border-r md:p-10" style={{ borderColor: "var(--line)" }}>
@@ -142,7 +215,7 @@ export default async function CompanyPage({ params }: { params: { id: string } }
                     <span className="financial text-sm">{money(employment.salary)}</span>
                   </div>
                 ) : null;
-              }) : <p className="body-muted py-8 text-sm">No one is on payroll—yet.</p>}
+              }) : <p className="body-muted py-8 text-sm">No one is on payroll yet.</p>}
             </div>
           </section>
 
@@ -191,7 +264,7 @@ export default async function CompanyPage({ params }: { params: { id: string } }
                   {event.reason.trim() ? <blockquote className="mt-4 border-l-4 pl-5 text-lg italic leading-7" style={{ borderColor: "var(--blue)", color: "var(--blue)" }}>“{event.reason}”</blockquote> : null}
                 </article>
               );
-            }) : <p className="body-muted py-8 text-sm">Nothing on the company record—yet.</p>}
+            }) : <p className="body-muted py-8 text-sm">Nothing on the company record yet.</p>}
           </div>
         </section>
       </div>

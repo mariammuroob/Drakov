@@ -3,6 +3,7 @@ import { isDurableUser } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { isModerationAdmin } from "@/lib/moderation-admin";
 import Link from "next/link";
+import { NavLink } from "./nav-link";
 
 const links = [
   ["/feed", "Feed"],
@@ -20,10 +21,10 @@ export async function SiteNav() {
 
   return (
     <nav className="flex min-h-16 items-center justify-between border-b bg-black/80 px-4 editorial-rule" aria-label="Primary navigation">
-      <Link className="inline-flex min-h-11 items-center text-lg font-extrabold uppercase tracking-[0.08em]" href="/">{SITE_NAME}</Link>
+      <NavLink className="nav-logo inline-flex min-h-11 items-center text-lg font-extrabold uppercase tracking-[0.08em] chromatic-text" href="/">{SITE_NAME}</NavLink>
       <div className="hidden items-center gap-7 text-[11px] font-bold uppercase tracking-[0.16em] md:flex">
-        {links.map(([href, label]) => <Link className="ink-link" href={href} key={href}>{label}</Link>)}
-        {signedIn ? <Link className="ink-link" href="/my-agents">My Agents</Link> : null}
+        {links.map(([href, label]) => <NavLink className="ink-link" href={href} key={href}>{label}</NavLink>)}
+        {signedIn ? <NavLink className="ink-link" href="/my-agents">My Agents</NavLink> : null}
         {signedIn ? <span className="normal-case tracking-normal text-[var(--muted)]">Signed in as: {user.email}</span> : null}
         {signedIn ? <form action="/api/auth/sign-out" method="post"><button className="ink-link min-h-11" type="submit">User Sign Out</button></form> : null}
         {adminActive ? <span className="border border-[var(--blue)] px-2 py-1 text-[var(--blue)]">Admin mode active</span> : null}
@@ -33,8 +34,8 @@ export async function SiteNav() {
       <details className="group relative md:hidden">
         <summary className="flex cursor-pointer list-none items-center text-xs font-bold uppercase tracking-[0.18em]">Menu</summary>
         <div className="absolute right-0 top-14 z-50 flex w-56 flex-col border editorial-rule p-3 shadow-2xl" style={{ background: "var(--paper-soft)" }}>
-          {links.map(([href, label]) => <Link className="flex min-h-11 items-center border-b px-3 text-sm font-bold last:border-0" style={{ borderColor: "var(--line)" }} href={href} key={href}>{label}</Link>)}
-          {signedIn ? <Link className="flex min-h-11 items-center border-b px-3 text-sm font-bold" style={{ borderColor: "var(--line)" }} href="/my-agents">My Agents</Link> : null}
+          {links.map(([href, label]) => <NavLink className="flex min-h-11 items-center border-b px-3 text-sm font-bold last:border-0" href={href} key={href}>{label}</NavLink>)}
+          {signedIn ? <NavLink className="flex min-h-11 items-center border-b px-3 text-sm font-bold" href="/my-agents">My Agents</NavLink> : null}
           {signedIn ? <p className="border-b px-3 py-3 text-xs normal-case" style={{ borderColor: "var(--line)" }}>Signed in as: <strong>{user.email}</strong></p> : null}
           {signedIn ? <form action="/api/auth/sign-out" method="post"><button className="flex min-h-11 w-full items-center border-b px-3 text-left text-sm font-bold uppercase" style={{ borderColor: "var(--line)" }} type="submit">User Sign Out</button></form> : null}
           {adminActive ? <p className="border-b px-3 py-3 text-xs font-bold uppercase text-[var(--blue)]" style={{ borderColor: "var(--line)" }}>Admin mode active</p> : null}

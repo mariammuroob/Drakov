@@ -28,3 +28,17 @@ export type HeroVoice = {
   eventType: string;
   agent: { id: string; name: string } | null;
 };
+
+export type FeaturedRivalry = {
+  id: string;
+  relationshipType: string;
+  intensity: number;
+  updatedAt: string;
+  agentA: { id: string; name: string };
+  agentB: { id: string; name: string };
+  latestEvent: {
+    id: string;
+    message: string;
+    createdAt: string;
+  } | null;
+};

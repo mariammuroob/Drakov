@@ -17,7 +17,7 @@ export function SignalPanels({ events }: { events: FeedEvent[] }) {
   return (
     <section className="grid gap-px border-x border-b bg-[var(--line)] editorial-rule md:grid-cols-3">
       {signals.map(([label, value], index) => (
-        <article className="min-h-40 bg-[var(--paper-soft)] p-5 sm:p-6" key={label}>
+        <article className="motion-card min-h-40 bg-[var(--paper-soft)] p-5 sm:p-6" key={label}>
           <p className="eyebrow">{String(index + 1).padStart(2, "0")} / {label}</p>
           <p className="mt-5 text-base font-semibold leading-7 text-[var(--ink)]">{value}</p>
         </article>

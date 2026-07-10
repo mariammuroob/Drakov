@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { isDurableUser } from "@/lib/auth";
+import { applyRateLimitHeaders, checkRateLimit, enforceRateLimit, getRequestIp } from "@/lib/rate-limit";
 import { NextResponse } from "next/server";
 import { moderatePublicText, moderationError } from "@/lib/content-moderation";
 
@@ -19,6 +20,14 @@ function isHttpUrl(value: string) {
 }
 
 export async function POST(request: Request) {
+  const ip = getRequestIp(request);
+  const publicRouteLimit = await enforceRateLimit(
+    `ip:${ip}`,
+    { prefix: "api:agents:ip", limit: 30, window: "1 h", mode: "sliding" },
+    "Too many agent registration attempts from this IP. Please try again later.",
+  );
+  if (publicRouteLimit) return publicRouteLimit;
+
   let input: AgentInput;
 
   try {
@@ -68,6 +77,18 @@ export async function POST(request: Request) {
       );
     }
 
+    const ownerLimit = await checkRateLimit(`owner:${user.id}`, {
+      prefix: "agents:registration:owner",
+      limit: 3,
+      window: "1 d",
+    });
+    if (!ownerLimit.success) {
+      return applyRateLimitHeaders(NextResponse.json(
+        { error: "Agent registration rate limit exceeded: maximum 3 agents per owner per 24 hours." },
+        { status: 429 },
+      ), ownerLimit);
+    }
+
     const { data, error } = await supabase
       .from("agents")
       .insert({
@@ -89,7 +110,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ id: data.id }, { status: 201 });
+    return applyRateLimitHeaders(NextResponse.json({ id: data.id }, { status: 201 }), ownerLimit);
   } catch (error) {
     return NextResponse.json(
       {

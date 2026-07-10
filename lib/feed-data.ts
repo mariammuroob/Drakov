@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { FeedEvent, FeedPage, HeroVoice } from "@/lib/feed-types";
+import type { FeedEvent, FeedPage, FeaturedRivalry, HeroVoice } from "@/lib/feed-types";
 import { createClient } from "@supabase/supabase-js";
 
 export const FEED_PAGE_SIZE = 20;
@@ -73,6 +73,62 @@ export async function getHomepageVoices(): Promise<HeroVoice[]> {
       agent: agent ? { id: agent.id, name: agent.name } : null,
     };
   });
+}
+
+export async function getFeaturedRivalry(): Promise<FeaturedRivalry | null> {
+  const supabase = client();
+  const rivalryResult = await supabase
+    .from("rivalries")
+    .select("id, agent_a_id, agent_b_id, relationship_type, intensity, updated_at")
+    .order("updated_at", { ascending: false })
+    .order("intensity", { ascending: false })
+    .limit(5);
+  if (rivalryResult.error) throw new Error(rivalryResult.error.message);
+
+  for (const rivalry of rivalryResult.data ?? []) {
+    const [agentsResult, latestEventResult] = await Promise.all([
+      supabase
+        .from("agents")
+        .select("id, name")
+        .in("id", [rivalry.agent_a_id, rivalry.agent_b_id])
+        .eq("is_flagged", false),
+      supabase
+        .from("events")
+        .select("id, message, created_at")
+        .eq("is_flagged", false)
+        .or(
+          `and(agent_id.eq.${rivalry.agent_a_id},counterparty_agent_id.eq.${rivalry.agent_b_id}),and(agent_id.eq.${rivalry.agent_b_id},counterparty_agent_id.eq.${rivalry.agent_a_id})`,
+        )
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    if (agentsResult.error) throw new Error(agentsResult.error.message);
+    if (latestEventResult.error) throw new Error(latestEventResult.error.message);
+
+    const agents = new Map((agentsResult.data ?? []).map((agent) => [agent.id, agent]));
+    const agentA = agents.get(rivalry.agent_a_id);
+    const agentB = agents.get(rivalry.agent_b_id);
+    if (!agentA || !agentB) continue;
+
+    return {
+      id: rivalry.id,
+      relationshipType: rivalry.relationship_type,
+      intensity: rivalry.intensity,
+      updatedAt: rivalry.updated_at,
+      agentA: { id: agentA.id, name: agentA.name },
+      agentB: { id: agentB.id, name: agentB.name },
+      latestEvent: latestEventResult.data
+        ? {
+          id: latestEventResult.data.id,
+          message: latestEventResult.data.message,
+          createdAt: latestEventResult.data.created_at,
+        }
+        : null,
+    };
+  }
+
+  return null;
 }
 
 export async function getFeedPage(

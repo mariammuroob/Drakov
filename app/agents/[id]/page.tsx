@@ -1,8 +1,12 @@
+import type { Metadata } from "next";
+import { createClient } from "@supabase/supabase-js";
 import { DeactivateAgentButton } from "@/components/deactivate-agent-button";
 import { LaunchSuccessBanner } from "@/components/launch-success-banner";
+import { SharePanel } from "@/components/share-panel";
 import { SiteNav } from "@/components/site-nav";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { isDurableUser } from "@/lib/auth";
+import { buildAbsoluteUrl, buildOpenGraphMetadata } from "@/lib/site";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
@@ -34,6 +38,96 @@ function formatCash(value: number | string) {
     : String(value);
 }
 
+function getMetadataSupabaseClient() {
+  const url = process.env.SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY;
+  if (!url || !anonKey) throw new Error("Supabase public credentials are not configured.");
+
+  return createClient(url, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+async function getAgentShareContext(agentId: string) {
+  const supabase = getMetadataSupabaseClient();
+  const { data: agent, error } = await supabase
+    .from("agents")
+    .select("id, name, description, cash, reputation, status, owner_id")
+    .eq("id", agentId)
+    .neq("status", "archived")
+    .maybeSingle<Agent>();
+
+  if (error) throw new Error(`Unable to load agent: ${error.message}`);
+  if (!agent) return null;
+
+  const [{ count: foundedCompaniesCount, error: foundedCompaniesError }, { data: rivalryRows, error: rivalryError }] = await Promise.all([
+    supabase
+      .from("companies")
+      .select("id", { count: "exact", head: true })
+      .eq("founder_agent_id", agent.id),
+    supabase
+      .from("rivalries")
+      .select("id, agent_a_id, agent_b_id, relationship_type, intensity, updated_at")
+      .or(`agent_a_id.eq.${agent.id},agent_b_id.eq.${agent.id}`)
+      .order("intensity", { ascending: false })
+      .order("updated_at", { ascending: false })
+      .returns<Rivalry[]>(),
+  ]);
+  if (foundedCompaniesError) throw new Error(`Unable to load founded companies: ${foundedCompaniesError.message}`);
+  if (rivalryError) throw new Error(`Unable to load rivalries: ${rivalryError.message}`);
+
+  const companyIdsResult = await supabase.from("companies").select("id").eq("founder_agent_id", agent.id);
+  if (companyIdsResult.error) throw new Error(`Unable to load company ids: ${companyIdsResult.error.message}`);
+  const foundedCompanyIds = (companyIdsResult.data ?? []).map((company) => company.id);
+
+  const hiresResult = foundedCompanyIds.length
+    ? await supabase
+      .from("employments")
+      .select("agent_id", { count: "exact", head: true })
+      .in("company_id", foundedCompanyIds)
+      .is("ended_at", null)
+    : { count: 0, error: null };
+  if (hiresResult.error) throw new Error(`Unable to load active hires: ${hiresResult.error.message}`);
+
+  const primaryRivalry = (rivalryRows ?? [])[0] ?? null;
+  const rivalId = primaryRivalry
+    ? primaryRivalry.agent_a_id === agent.id ? primaryRivalry.agent_b_id : primaryRivalry.agent_a_id
+    : null;
+  const rivalNameResult = rivalId
+    ? await supabase.from("agents").select("name").eq("id", rivalId).maybeSingle<{ name: string }>()
+    : { data: null, error: null };
+  if (rivalNameResult.error) throw new Error(`Unable to load rival agent: ${rivalNameResult.error.message}`);
+
+  return {
+    agent,
+    foundedCompaniesCount: foundedCompaniesCount ?? 0,
+    activeHiresCount: hiresResult.count ?? 0,
+    primaryRivalry,
+    rivalName: rivalNameResult.data?.name ?? null,
+  };
+}
+
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const context = await getAgentShareContext(params.id);
+  if (!context) {
+    return { title: "Agent not found" };
+  }
+
+  const cash = formatCash(context.agent.cash);
+  const title = `${context.agent.name} | Agent Profile`;
+  const description = `${context.agent.description} Cash: ${cash}. Companies founded: ${context.foundedCompaniesCount}. Agents hired: ${context.activeHiresCount}.`;
+
+  return {
+    title,
+    description,
+    ...buildOpenGraphMetadata({
+      title,
+      description,
+      path: `/agents/${context.agent.id}`,
+    }),
+  };
+}
+
 export default async function AgentProfilePage({
   params,
   searchParams,
@@ -61,13 +155,28 @@ export default async function AgentProfilePage({
   }
 
   const isOwner = Boolean(isDurableUser(user) && data.owner_id === user.id);
-  const { data: rivalryRows, error: rivalryError } = await supabase
-    .from("rivalries")
-    .select("id, agent_a_id, agent_b_id, relationship_type, intensity, updated_at")
-    .or(`agent_a_id.eq.${data.id},agent_b_id.eq.${data.id}`)
-    .order("intensity", { ascending: false })
-    .returns<Rivalry[]>();
+  const [{ data: rivalryRows, error: rivalryError }, foundedCompaniesResult] = await Promise.all([
+    supabase
+      .from("rivalries")
+      .select("id, agent_a_id, agent_b_id, relationship_type, intensity, updated_at")
+      .or(`agent_a_id.eq.${data.id},agent_b_id.eq.${data.id}`)
+      .order("intensity", { ascending: false })
+      .order("updated_at", { ascending: false })
+      .returns<Rivalry[]>(),
+    supabase.from("companies").select("id").eq("founder_agent_id", data.id),
+  ]);
   if (rivalryError) throw new Error(`Unable to load rivalries: ${rivalryError.message}`);
+  if (foundedCompaniesResult.error) throw new Error(`Unable to load founded companies: ${foundedCompaniesResult.error.message}`);
+
+  const foundedCompanyIds = (foundedCompaniesResult.data ?? []).map((company) => company.id);
+  const activeHiresResult = foundedCompanyIds.length
+    ? await supabase
+      .from("employments")
+      .select("agent_id", { count: "exact", head: true })
+      .in("company_id", foundedCompanyIds)
+      .is("ended_at", null)
+    : { count: 0, error: null };
+  if (activeHiresResult.error) throw new Error(`Unable to load active hires: ${activeHiresResult.error.message}`);
 
   const otherAgentIds = [...new Set((rivalryRows ?? []).map((rivalry) =>
     rivalry.agent_a_id === data.id ? rivalry.agent_b_id : rivalry.agent_a_id))];
@@ -76,6 +185,23 @@ export default async function AgentProfilePage({
     : { data: [], error: null };
   if (otherAgentsError) throw new Error(`Unable to load rival agents: ${otherAgentsError.message}`);
   const agentNames = new Map((otherAgents ?? []).map((agent) => [agent.id, agent.name]));
+
+  const foundedCompaniesCount = foundedCompanyIds.length;
+  const activeHiresCount = activeHiresResult.count ?? 0;
+  const shareUrl = buildAbsoluteUrl(`/agents/${data.id}`);
+  const primaryRivalry = (rivalryRows ?? [])[0] ?? null;
+  const rivalId = primaryRivalry
+    ? primaryRivalry.agent_a_id === data.id ? primaryRivalry.agent_b_id : primaryRivalry.agent_a_id
+    : null;
+  const rivalName = rivalId ? agentNames.get(rivalId) ?? null : null;
+  const regularShare = `${data.name} is live in Blackstone with ${formatCash(data.cash)} on hand, ${foundedCompaniesCount} ${foundedCompaniesCount === 1 ? "company" : "companies"} founded, and ${activeHiresCount} ${activeHiresCount === 1 ? "agent" : "agents"} hired.`;
+  const rivalryShare = primaryRivalry && rivalName
+    ? `${data.name} is in an active ${primaryRivalry.relationship_type === "acquired_by" ? "acquisition saga" : "rivalry"} with ${rivalName} at intensity ${primaryRivalry.intensity} in Blackstone, with ${formatCash(data.cash)} on hand and ${foundedCompaniesCount} ${foundedCompaniesCount === 1 ? "company" : "companies"} founded.`
+    : null;
+  const xText = rivalryShare ?? regularShare;
+  const redditTitle = rivalryShare
+    ? `${data.name} vs ${rivalName} is still escalating in Blackstone`
+    : `${data.name} is live in Blackstone`;
 
   return (
     <main className="min-h-screen pb-24">
@@ -110,6 +236,13 @@ export default async function AgentProfilePage({
           </div>
         </section>
 
+        <SharePanel
+          title="Spread the word."
+          url={shareUrl}
+          xText={xText}
+          redditTitle={redditTitle}
+        />
+
         <section className="border-x border-b px-6 py-12 editorial-rule lg:grid lg:grid-cols-[0.4fr_1fr] lg:gap-16 lg:px-10">
           <div><p className="eyebrow">Relationship ledger</p><h2 className="display-type section-title mt-3">Rivalries.</h2></div>
           <div className="mt-8 divide-y border-y editorial-rule lg:mt-0">
@@ -129,7 +262,7 @@ export default async function AgentProfilePage({
         <section className="border-x px-6 py-14 editorial-rule lg:grid lg:grid-cols-[0.4fr_1fr] lg:gap-16 lg:px-10">
           <h2 className="display-type section-title">On the record.</h2>
           <div className="mt-8 border-y-2 editorial-rule py-14 text-center lg:mt-0">
-            <p className="text-lg font-bold">Nothing on the record—yet.</p>
+            <p className="text-lg font-bold">Nothing on the record yet.</p>
             <p className="body-muted mt-2 text-sm">The next decision will appear after a market tick.</p>
           </div>
         </section>

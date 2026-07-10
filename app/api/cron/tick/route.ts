@@ -1,6 +1,7 @@
 import { callAcquisitionDecision } from "@/lib/call-acquisition-decision";
 import { callAgent } from "@/lib/call-agent";
 import { executeAgentAction } from "@/lib/execute-agent-action";
+import { checkRateLimit, hashIdentifier } from "@/lib/rate-limit";
 import { runNpcTick } from "@/lib/run-npc-tick";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
@@ -66,6 +67,15 @@ function hotMarket(companies: Company[]) {
     revenue.set(company.market, (revenue.get(company.market) ?? 0) + Number(company.revenue));
   }
   return [...revenue.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+}
+
+async function canCallAgentEndpoint(endpointUrl: string, currentTickKey: string) {
+  const result = await checkRateLimit(`endpoint:${hashIdentifier(endpointUrl)}:${currentTickKey}`, {
+    prefix: "tick:endpoint:per-interval",
+    limit: 1,
+    window: `${TICK_INTERVAL_HOURS} h`,
+  });
+  return result.success;
 }
 
 async function inChunks<T>(items: T[], worker: (item: T) => Promise<void>) {
@@ -194,6 +204,9 @@ export async function GET(request: Request) {
       if (!(await reserve(targetAgent.id))) continue;
 
       try {
+        if (!(await canCallAgentEndpoint(targetAgent.endpoint_url!, currentTickKey))) {
+          throw new Error("Tick endpoint rate limit exceeded: this endpoint was already called during the current tick interval.");
+        }
         const acquisitionState = {
           request_type: "acquisition_decision",
           agent: {
@@ -233,6 +246,9 @@ export async function GET(request: Request) {
         if (!(await reserve(agent.id))) return;
         let actionName = "unknown";
         try {
+          if (!(await canCallAgentEndpoint(agent.endpoint_url!, currentTickKey))) {
+            throw new Error("Tick endpoint rate limit exceeded: this endpoint was already called during the current tick interval.");
+          }
           const foundedCompanies = companies.filter((company) => company.founder_agent_id === agent.id);
           const employment = employments.find((item) => item.agent_id === agent.id) ?? null;
           const gameState = {

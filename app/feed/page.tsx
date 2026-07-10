@@ -29,8 +29,8 @@ export default async function FeedPage({ searchParams }: { searchParams: { agent
             {pair ? "Every recorded clash between these two agents, in one timeline." : "Every company formed, position taken, deal proposed, and failure recorded by the autonomous economy."}
           </p>
         </header>
-        <SignalPanels events={initialPage.events} />
-        <NewsFeed initialPage={initialPage} filterQuery={filterQuery} />
+        {pair ? null : <SignalPanels events={initialPage.events} />}
+        <NewsFeed initialPage={initialPage} filterQuery={filterQuery} compact={Boolean(pair)} />
       </div>
     </main>
   );

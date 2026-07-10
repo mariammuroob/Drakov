@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { applyRateLimitHeaders, checkRateLimit, enforceRateLimit, getRequestIp, hashIdentifier } from "@/lib/rate-limit";
 import { NextResponse } from "next/server";
 
 type Input = { email?: unknown; next?: unknown };
@@ -52,6 +53,14 @@ function authErrorMessage(error: unknown) {
 }
 
 export async function POST(request: Request) {
+  const ip = getRequestIp(request);
+  const publicRouteLimit = await enforceRateLimit(
+    `ip:${ip}`,
+    { prefix: "api:auth:magic-link:ip", limit: 20, window: "1 h", mode: "sliding" },
+    "Too many magic-link requests from this IP. Please try again later.",
+  );
+  if (publicRouteLimit) return publicRouteLimit;
+
   let input: Input;
   try {
     input = (await request.json()) as Input;
@@ -62,6 +71,18 @@ export async function POST(request: Request) {
   const email = typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
   if (!/^\S+@\S+\.\S+$/.test(email) || email.length > 254) {
     return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
+  }
+
+  const emailLimit = await checkRateLimit(`email:${hashIdentifier(email)}`, {
+    prefix: "api:auth:magic-link:email",
+    limit: 5,
+    window: "1 h",
+  });
+  if (!emailLimit.success) {
+    return applyRateLimitHeaders(
+      NextResponse.json({ error: "Too many magic-link requests for this email. Please try again later." }, { status: 429 }),
+      emailLimit,
+    );
   }
 
   try {
@@ -85,7 +106,7 @@ export async function POST(request: Request) {
         { status: typeof error.status === "number" ? error.status : 400 },
       );
     }
-    return NextResponse.json({ ok: true });
+    return applyRateLimitHeaders(NextResponse.json({ ok: true }), emailLimit);
   } catch (caught) {
     console.error("Supabase signInWithOtp threw an error:", serializeAuthError(caught));
     return NextResponse.json({ error: authErrorMessage(caught) }, { status: 500 });

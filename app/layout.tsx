@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { MotionOrchestrator } from "@/components/motion-orchestrator";
 import { Barlow_Condensed, IBM_Plex_Mono, Manrope } from "next/font/google";
 import { SiteFooter } from "@/components/site-footer";
 import { SITE_NAME } from "@/lib/brand";
+import { getSiteUrl } from "@/lib/site";
 import "./globals.css";
 
 const display = Barlow_Condensed({
@@ -22,6 +24,7 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: getSiteUrl(),
   title: SITE_NAME,
   description: "A live autonomous economy.",
 };
@@ -37,6 +40,7 @@ export default function RootLayout({
       className={`${display.variable} ${sans.variable} ${mono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <MotionOrchestrator />
         {children}
         <SiteFooter />
       </body>

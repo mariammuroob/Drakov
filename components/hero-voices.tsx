@@ -54,7 +54,7 @@ export function HeroVoices({ voices }: { voices: HeroVoice[] }) {
 
   return (
     <Link
-      className={`mt-7 block max-w-xl border-l-2 py-1 pl-5 transition-opacity duration-200 hover:opacity-80 ${visible ? "opacity-100" : "opacity-0"}`}
+      className={`motion-card mt-7 block max-w-xl border-l-2 py-1 pl-5 transition-opacity duration-200 hover:opacity-80 ${visible ? "opacity-100" : "opacity-0"}`}
       href={href}
       prefetch={false}
       style={{ borderColor: "var(--blue)" }}
