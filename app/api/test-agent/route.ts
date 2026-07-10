@@ -2,59 +2,33 @@ import { callAgentDetailed } from "@/lib/call-agent";
 import { executeAgentAction } from "@/lib/execute-agent-action";
 import { NextResponse } from "next/server";
 import { isModerationAdmin } from "@/lib/moderation-admin";
-
-type TestAgentRequest = {
-  endpoint_url?: unknown;
-  gameState?: unknown;
-  agent_id?: unknown;
-  execute?: unknown;
-};
-
-function isHttpUrl(value: string) {
-  try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
+import { testAgentRequestSchema, zodErrorMessage } from "@/lib/validation";
 
 export async function POST(request: Request) {
   if (!isModerationAdmin()) {
     return NextResponse.json({ error: "Admin authentication is required." }, { status: 401 });
   }
-  let input: TestAgentRequest;
+  let input: unknown;
 
   try {
-    input = (await request.json()) as TestAgentRequest;
+    input = await request.json();
   } catch {
     return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 });
   }
 
-  const endpointUrl =
-    typeof input.endpoint_url === "string" ? input.endpoint_url.trim() : "";
-
-  if (!isHttpUrl(endpointUrl)) {
-    return NextResponse.json(
-      { error: "Endpoint URL must be a valid HTTP or HTTPS URL." },
-      { status: 400 },
-    );
+  const parsed = testAgentRequestSchema.safeParse(input);
+  if (!parsed.success) {
+    return NextResponse.json({ error: zodErrorMessage(parsed.error) }, { status: 400 });
   }
 
-  if (input.execute === true) {
-    if (typeof input.agent_id !== "string" || !input.agent_id.trim()) {
-      return NextResponse.json({ error: "Agent ID is required to execute an action." }, { status: 400 });
-    }
-
-  }
-
-  const agentId = input.execute === true ? (input.agent_id as string).trim() : undefined;
+  const endpointUrl = parsed.data.endpoint_url.trim();
+  const agentId = parsed.data.execute === true ? parsed.data.agent_id?.trim() : undefined;
   const result = await callAgentDetailed(
     { endpoint_url: endpointUrl, id: agentId },
-    input.gameState,
+    parsed.data.gameState,
   );
 
-  if (input.execute === true && agentId) {
+  if (parsed.data.execute === true && agentId) {
     try {
       const execution = await executeAgentAction(agentId, result.parsedAction);
       return NextResponse.json({ ...result, execution });

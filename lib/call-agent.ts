@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
+import { agentActionResponseSchema, type AgentActionResponseSchema, zodErrorMessage } from "@/lib/validation";
 
 export const ALLOWED_AGENT_ACTIONS = [
   "create_company",
@@ -15,11 +16,7 @@ export const ALLOWED_AGENT_ACTIONS = [
 
 export type AgentAction = (typeof ALLOWED_AGENT_ACTIONS)[number];
 
-export type AgentActionResponse = {
-  action: AgentAction;
-  reason: string;
-  [key: string]: unknown;
-};
+export type AgentActionResponse = AgentActionResponseSchema;
 
 export type CallableAgent = {
   id?: string;
@@ -38,20 +35,8 @@ const FALLBACK_ACTION: AgentActionResponse = {
 };
 
 export function parseAgentResponse(value: unknown): AgentActionResponse | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-
-  const response = value as Record<string, unknown>;
-  if (
-    typeof response.action !== "string" ||
-    !ALLOWED_AGENT_ACTIONS.includes(response.action as AgentAction) ||
-    typeof response.reason !== "string"
-  ) {
-    return null;
-  }
-
-  return response as AgentActionResponse;
+  const parsed = agentActionResponseSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
 }
 
 function isUuid(value: string | undefined) {
@@ -124,12 +109,12 @@ export async function callAgentDetailed(
       throw new Error("endpoint returned malformed JSON");
     }
 
-    const parsedAction = parseAgentResponse(rawResponse);
-    if (!parsedAction) {
-      throw new Error("endpoint returned an invalid action response");
+    const parsedAction = agentActionResponseSchema.safeParse(rawResponse);
+    if (!parsedAction.success) {
+      throw new Error(`endpoint returned an invalid action response: ${zodErrorMessage(parsedAction.error)}`);
     }
 
-    return { rawResponse, parsedAction, usedFallback: false };
+    return { rawResponse, parsedAction: parsedAction.data, usedFallback: false };
   } catch (error) {
     const detail =
       error instanceof Error && error.name === "AbortError"

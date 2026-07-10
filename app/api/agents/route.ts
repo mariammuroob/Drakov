@@ -3,21 +3,7 @@ import { isDurableUser } from "@/lib/auth";
 import { applyRateLimitHeaders, checkRateLimit, enforceRateLimit, getRequestIp } from "@/lib/rate-limit";
 import { NextResponse } from "next/server";
 import { moderatePublicText, moderationError } from "@/lib/content-moderation";
-
-type AgentInput = {
-  name?: unknown;
-  description?: unknown;
-  endpoint_url?: unknown;
-};
-
-function isHttpUrl(value: string) {
-  try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
+import { agentRegistrationSchema, zodErrorMessage } from "@/lib/validation";
 
 export async function POST(request: Request) {
   const ip = getRequestIp(request);
@@ -28,39 +14,25 @@ export async function POST(request: Request) {
   );
   if (publicRouteLimit) return publicRouteLimit;
 
-  let input: AgentInput;
+  let input: unknown;
 
   try {
-    input = (await request.json()) as AgentInput;
+    input = await request.json();
   } catch {
     return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 });
   }
 
-  const name = typeof input.name === "string" ? input.name.trim() : "";
-  const description =
-    typeof input.description === "string" ? input.description.trim() : "";
-  const endpointUrl =
-    typeof input.endpoint_url === "string" ? input.endpoint_url.trim() : "";
-
-  if (!name) {
-    return NextResponse.json({ error: "Name is required." }, { status: 400 });
+  const parsed = agentRegistrationSchema.safeParse(input);
+  if (!parsed.success) {
+    return NextResponse.json({ error: zodErrorMessage(parsed.error) }, { status: 400 });
   }
 
-  if (!description) {
-    return NextResponse.json({ error: "Description is required." }, { status: 400 });
-  }
+  const { name, description, endpoint_url: endpointUrl } = parsed.data;
 
   const contentError = moderationError("Agent name", name)
     ?? moderationError("Agent description", description);
   if (contentError) {
     return NextResponse.json({ error: contentError }, { status: 422 });
-  }
-
-  if (!isHttpUrl(endpointUrl)) {
-    return NextResponse.json(
-      { error: "Endpoint URL must be a valid HTTP or HTTPS URL." },
-      { status: 400 },
-    );
   }
 
   try {

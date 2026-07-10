@@ -1,8 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { applyRateLimitHeaders, checkRateLimit, enforceRateLimit, getRequestIp, hashIdentifier } from "@/lib/rate-limit";
+import { magicLinkRequestSchema, zodErrorMessage } from "@/lib/validation";
 import { NextResponse } from "next/server";
-
-type Input = { email?: unknown; next?: unknown };
 
 function safeNext(value: unknown) {
   return value === "/my-agents" ? "/my-agents" : "/launch";
@@ -61,17 +60,18 @@ export async function POST(request: Request) {
   );
   if (publicRouteLimit) return publicRouteLimit;
 
-  let input: Input;
+  let input: unknown;
   try {
-    input = (await request.json()) as Input;
+    input = await request.json();
   } catch {
     return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 });
   }
 
-  const email = typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
-  if (!/^\S+@\S+\.\S+$/.test(email) || email.length > 254) {
-    return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
+  const parsed = magicLinkRequestSchema.safeParse(input);
+  if (!parsed.success) {
+    return NextResponse.json({ error: zodErrorMessage(parsed.error) }, { status: 400 });
   }
+  const email = parsed.data.email.trim().toLowerCase();
 
   const emailLimit = await checkRateLimit(`email:${hashIdentifier(email)}`, {
     prefix: "api:auth:magic-link:email",
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
     if (user?.is_anonymous) await supabase.auth.signOut({ scope: "local" });
 
     const origin = new URL(request.url).origin;
-    const next = safeNext(input.next);
+    const next = safeNext(parsed.data.next);
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
