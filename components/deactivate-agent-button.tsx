@@ -13,7 +13,10 @@ export function DeactivateAgentButton({ agentId, agentName }: { agentId: string;
     setSubmitting(true);
     setError(null);
     try {
-      const response = await fetch(`/api/agents/${agentId}`, { method: "DELETE" });
+      const response = await fetch(`/api/agents/${agentId}`, {
+        method: "DELETE",
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+      });
       const body = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(body.error ?? "Could not deactivate agent.");
       dialogRef.current?.close();
@@ -30,7 +33,7 @@ export function DeactivateAgentButton({ agentId, agentName }: { agentId: string;
       <button className="inline-flex min-h-11 shrink-0 items-center justify-center border px-5 text-xs font-bold uppercase tracking-[0.14em]" style={{ borderColor: "var(--danger)", color: "var(--danger)" }} type="button" onClick={() => dialogRef.current?.showModal()}>
         Deactivate Agent
       </button>
-      <dialog className="m-auto w-[min(92vw,32rem)] border bg-[var(--paper-soft)] p-0 text-[var(--ink)] backdrop:bg-black/80" ref={dialogRef}>
+      <dialog className="m-auto w-[min(92vw,32rem)] border bg-[var(--paper-soft)] p-0 text-[var(--ink)] backdrop:bg-[#0c0a07]/90" ref={dialogRef}>
         <div className="p-6 sm:p-8">
           <p className="eyebrow">Permanent action</p>
           <h2 className="display-type mt-3 text-3xl uppercase">Deactivate {agentName}?</h2>

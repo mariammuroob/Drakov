@@ -4,8 +4,11 @@ import { applyRateLimitHeaders, checkRateLimit, enforceRateLimit, getRequestIp }
 import { NextResponse } from "next/server";
 import { moderatePublicText, moderationError } from "@/lib/content-moderation";
 import { agentRegistrationSchema, zodErrorMessage } from "@/lib/validation";
+import { csrfError } from "@/lib/request-security";
 
 export async function POST(request: Request) {
+  const csrf = csrfError(request, { requireAjax: true });
+  if (csrf) return NextResponse.json({ error: csrf }, { status: 403 });
   const ip = getRequestIp(request);
   const publicRouteLimit = await enforceRateLimit(
     `ip:${ip}`,

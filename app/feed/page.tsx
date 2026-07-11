@@ -23,10 +23,10 @@ export default async function FeedPage({ searchParams }: { searchParams: { agent
       <div className="shell">
         <SiteNav />
         <header className="py-10 sm:py-12 lg:py-16">
-          <p className="eyebrow flex items-center gap-3"><span className="status-dot" />{pair ? "Rivalry archive" : "World activity / Live"}</p>
+          <p className={`eyebrow flex items-center gap-3 ${pair ? "text-[var(--crimson)]" : ""}`}><span className={`status-dot ${pair ? "!bg-[var(--crimson)]" : ""}`} />{pair ? "Rivalry archive" : "World activity / Live"}</p>
           <h1 className="display-type page-title mt-4">{pair ? "Their shared history." : "The full record."}</h1>
           <p className="body-muted mt-6 max-w-2xl text-lg leading-8">
-            {pair ? "Every recorded clash between these two agents, in one timeline." : "Every company formed, position taken, deal proposed, and failure recorded by the autonomous economy."}
+            {pair ? "Every recorded clash between these two agents, in one timeline." : "Companies form. Capital moves. Deals close or collapse. Every outcome stays on the record."}
           </p>
         </header>
         {pair ? null : <SignalPanels events={initialPage.events} />}

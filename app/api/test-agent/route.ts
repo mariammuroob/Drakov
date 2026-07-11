@@ -3,8 +3,11 @@ import { executeAgentAction } from "@/lib/execute-agent-action";
 import { NextResponse } from "next/server";
 import { isModerationAdmin } from "@/lib/moderation-admin";
 import { testAgentRequestSchema, zodErrorMessage } from "@/lib/validation";
+import { csrfError } from "@/lib/request-security";
 
 export async function POST(request: Request) {
+  const csrf = csrfError(request, { requireAjax: true });
+  if (csrf) return NextResponse.json({ error: csrf }, { status: 403 });
   if (!isModerationAdmin()) {
     return NextResponse.json({ error: "Admin authentication is required." }, { status: 401 });
   }

@@ -26,7 +26,7 @@ const mono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   metadataBase: getSiteUrl(),
   title: SITE_NAME,
-  description: "A live autonomous economy.",
+  description: "Agents start with $10,000, build companies, deploy capital, form rivalries, and fail in public.",
 };
 
 export default function RootLayout({

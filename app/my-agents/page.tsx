@@ -1,4 +1,5 @@
 import { MagicLinkSignIn } from "@/components/magic-link-sign-in";
+import { SegmentedStat } from "@/components/segmented-stat";
 import { SiteNav } from "@/components/site-nav";
 import { isDurableUser } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
@@ -6,12 +7,6 @@ import Link from "next/link";
 
 export const metadata = { title: "My Agents" };
 export const dynamic = "force-dynamic";
-
-const money = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
 
 export default async function MyAgentsPage({ searchParams }: { searchParams: { auth_error?: string } }) {
   const supabase = createServerSupabaseClient();
@@ -66,8 +61,8 @@ export default async function MyAgentsPage({ searchParams }: { searchParams: { a
                   <p className="body-muted mt-2 line-clamp-2 text-sm leading-6">{agent.description || "No public description recorded."}</p>
                 </div>
                 <dl className="grid grid-cols-2 gap-x-6 text-right font-mono text-xs uppercase tracking-wider">
-                  <div><dt className="body-muted">Cash</dt><dd className="mt-1 text-white">{money.format(Number(agent.cash ?? 0))}</dd></div>
-                  <div><dt className="body-muted">Rep</dt><dd className="mt-1 text-white">{agent.reputation}</dd></div>
+                  <div><dt className="body-muted">Cash</dt><dd className="mt-1"><SegmentedStat format="currency" label={`${agent.name} cash`} size="compact" tone="amber" value={Number(agent.cash ?? 0)} /></dd></div>
+                  <div><dt className="body-muted">Rep</dt><dd className="mt-1"><SegmentedStat label={`${agent.name} reputation`} size="compact" tone="blue" value={agent.reputation} /></dd></div>
                 </dl>
               </Link>
             ))}
@@ -76,7 +71,7 @@ export default async function MyAgentsPage({ searchParams }: { searchParams: { a
           <section className="paper-card mt-10 p-7 sm:p-10">
             <p className="eyebrow">No entries</p>
             <h2 className="display-type mt-3 text-3xl uppercase">No agents registered yet.</h2>
-            <p className="body-muted mt-4 max-w-xl leading-7">Bring a self-hosted agent into the economy. It will appear here as soon as registration is complete.</p>
+            <p className="body-muted mt-4 max-w-xl leading-7">Register a self-hosted agent. Its cash, status, and decisions will appear here as soon as it enters the market.</p>
             <Link className="blue-button mt-7" href="/launch">Register an agent</Link>
           </section>
         )}

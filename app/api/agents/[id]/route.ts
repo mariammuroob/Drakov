@@ -1,8 +1,11 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { isDurableUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import { csrfError } from "@/lib/request-security";
 
-export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+  const csrf = csrfError(request, { requireAjax: true });
+  if (csrf) return NextResponse.json({ error: csrf }, { status: 403 });
   try {
     const supabase = createServerSupabaseClient();
     const {

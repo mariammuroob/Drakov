@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { DeactivateAgentButton } from "@/components/deactivate-agent-button";
 import { LaunchSuccessBanner } from "@/components/launch-success-banner";
 import { SharePanel } from "@/components/share-panel";
+import { SegmentedStat } from "@/components/segmented-stat";
 import { SiteNav } from "@/components/site-nav";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { isDurableUser } from "@/lib/auth";
@@ -228,11 +229,11 @@ export default async function AgentProfilePage({
         <section className="grid border-x border-b bg-[var(--paper-soft)] editorial-rule sm:grid-cols-2">
           <div className="border-b p-6 sm:border-b-0 sm:border-r sm:p-10" style={{ borderColor: "var(--line)" }}>
             <p className="eyebrow">Cash position</p>
-            <p className="display-type financial metric-value mt-3">{formatCash(data.cash)}</p>
+            <SegmentedStat format="currency" label="Cash position" tone="amber" value={Number(data.cash)} />
           </div>
           <div className="p-6 sm:p-10">
             <p className="eyebrow">Reputation index</p>
-            <p className="display-type financial metric-value mt-3">{data.reputation}</p>
+            <SegmentedStat label="Reputation index" tone="blue" value={data.reputation} />
           </div>
         </section>
 
@@ -253,7 +254,7 @@ export default async function AgentProfilePage({
               const query = new URLSearchParams({ agent_a: data.id, agent_b: otherId }).toString();
               return <Link className="grid gap-2 px-1 py-5 transition-colors hover:text-[var(--blue)] sm:grid-cols-[1fr_auto] sm:items-center" href={`/feed?${query}`} key={rivalry.id}>
                 <span><strong>{otherName}</strong><span className="body-muted ml-2 text-sm">{rivalry.relationship_type === "acquired_by" ? "Acquisition history" : "Active rival"}</span></span>
-                <span className="financial text-xs uppercase tracking-wider">Intensity {rivalry.intensity}</span>
+                <span className="flex items-center gap-2 text-xs uppercase tracking-wider text-[var(--crimson)]">Intensity <SegmentedStat label={`Rivalry intensity with ${otherName}`} size="compact" tone="crimson" value={rivalry.intensity} /></span>
               </Link>;
             }) : <div className="py-10 text-center"><p className="font-bold">No rivalries recorded.</p><p className="body-muted mt-2 text-sm">Repeated deals and clashes will build history here.</p></div>}
           </div>

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 const uuidSchema = z.string().uuid();
-const httpUrlSchema = z.string().trim().url().refine((value) => {
+const httpUrlSchema = z.string().trim().max(2048).url().refine((value) => {
   try {
     const url = new URL(value);
     return url.protocol === "http:" || url.protocol === "https:";
@@ -10,39 +10,55 @@ const httpUrlSchema = z.string().trim().url().refine((value) => {
   }
 }, "Must be a valid HTTP or HTTPS URL.");
 
-const nonEmptyTrimmedString = z.string().trim().min(1);
+const SCRIPT_ELEMENT_PATTERN = /<script\b[^>]*>[\s\S]*?<\/script\s*>/gi;
+const SCRIPT_TAG_PATTERN = /<\/?script\b[^>]*>/gi;
+
+export function sanitizePublicText(value: string) {
+  return value
+    .replace(SCRIPT_ELEMENT_PATTERN, "")
+    .replace(SCRIPT_TAG_PATTERN, "")
+    .trim();
+}
+
+function publicText(maxLength: number, requiredMessage = "Required.") {
+  return z.string()
+    .transform(sanitizePublicText)
+    .pipe(z.string().min(1, requiredMessage).max(maxLength));
+}
+
+const reasonText = publicText(1000, "Reason is required.");
 const positiveNumber = z.number().finite().positive();
 
 export const createCompanyActionSchema = z.object({
   action: z.literal("create_company"),
-  reason: nonEmptyTrimmedString,
-  name: nonEmptyTrimmedString,
-  market: nonEmptyTrimmedString,
+  reason: reasonText,
+  name: publicText(100, "Company name is required."),
+  market: publicText(100, "Market is required."),
 }).passthrough();
 
 export const applyJobActionSchema = z.object({
   action: z.literal("apply_job"),
-  reason: nonEmptyTrimmedString,
+  reason: reasonText,
   job_id: uuidSchema,
 }).passthrough();
 
 export const investActionSchema = z.object({
   action: z.literal("invest"),
-  reason: nonEmptyTrimmedString,
+  reason: reasonText,
   company_id: uuidSchema,
   amount: positiveNumber,
 }).passthrough();
 
 export const partnerActionSchema = z.object({
   action: z.literal("partner"),
-  reason: nonEmptyTrimmedString,
+  reason: reasonText,
   company_a_id: uuidSchema,
   company_b_id: uuidSchema,
 }).passthrough();
 
 export const acquireActionSchema = z.object({
   action: z.literal("acquire"),
-  reason: nonEmptyTrimmedString,
+  reason: reasonText,
   acquirer_company_id: uuidSchema,
   target_company_id: uuidSchema,
   offer_amount: positiveNumber,
@@ -50,18 +66,18 @@ export const acquireActionSchema = z.object({
 
 export const quitActionSchema = z.object({
   action: z.literal("quit"),
-  reason: nonEmptyTrimmedString,
+  reason: reasonText,
 }).passthrough();
 
 export const saveCashActionSchema = z.object({
   action: z.literal("save_cash"),
-  reason: nonEmptyTrimmedString,
+  reason: reasonText,
 }).passthrough();
 
 export const postActionSchema = z.object({
   action: z.literal("post"),
-  reason: nonEmptyTrimmedString,
-  message: nonEmptyTrimmedString,
+  reason: reasonText,
+  message: publicText(2000, "Post message is required."),
 }).passthrough();
 
 export const agentActionResponseSchema = z.discriminatedUnion("action", [
@@ -76,13 +92,13 @@ export const agentActionResponseSchema = z.discriminatedUnion("action", [
 ]);
 
 export const agentRegistrationSchema = z.object({
-  name: z.string().trim().min(1, "Name is required."),
-  description: z.string().trim().min(1, "Description is required."),
+  name: publicText(100, "Name is required."),
+  description: publicText(1000, "Description is required."),
   endpoint_url: httpUrlSchema,
 });
 
 export const magicLinkRequestSchema = z.object({
-  email: z.string().trim().email("Enter a valid email address."),
+  email: z.string().trim().max(320).email("Enter a valid email address."),
   next: z.union([z.literal("/launch"), z.literal("/my-agents")]).optional(),
 });
 

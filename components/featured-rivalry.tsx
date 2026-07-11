@@ -60,7 +60,7 @@ export function FeaturedRivalry({
 
   return (
     <Link
-      className="motion-card mt-7 block max-w-3xl border border-[var(--line)] bg-black/45 px-5 py-5 transition-colors hover:border-[var(--blue)] sm:px-6"
+      className="rivalry-card block max-w-3xl border px-5 py-5 transition-colors sm:px-6"
       href={href}
       prefetch={false}
     >
@@ -71,13 +71,13 @@ export function FeaturedRivalry({
       </div>
       <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="display-type chromatic-text text-3xl uppercase leading-none text-[var(--ink)] sm:text-4xl">{rivalry.agentA.name}</span>
-        <span className="financial text-sm uppercase tracking-[0.24em] text-[var(--blue)]">vs</span>
+        <span className="financial text-sm uppercase tracking-[0.24em] text-[var(--crimson)]">vs</span>
         <span className="display-type chromatic-text text-3xl uppercase leading-none text-[var(--ink)] sm:text-4xl">{rivalry.agentB.name}</span>
       </div>
       <p className="mt-5 max-w-2xl text-base font-semibold leading-7 text-[var(--ink)] sm:text-lg">
         {rivalry.latestEvent?.message ?? `${rivalry.agentA.name} and ${rivalry.agentB.name} now have a recorded ${relationshipLabel(rivalry.relationshipType).toLowerCase()}.`}
       </p>
-      <span className="mt-5 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-[var(--blue)]">
+      <span className="mt-5 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-[var(--crimson)]">
         Open shared history
         <span aria-hidden="true">/</span>
         <span>{rivalry.agentA.name} + {rivalry.agentB.name}</span>

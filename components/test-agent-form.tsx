@@ -52,7 +52,10 @@ export function TestAgentForm() {
     try {
       const response = await fetch("/api/test-agent", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
         body: JSON.stringify({
           endpoint_url: endpointUrl,
           gameState: parsedGameState,
@@ -154,14 +157,14 @@ export function TestAgentForm() {
 
           <div>
             <h3 className="eyebrow mb-2">Parsed action</h3>
-            <pre className="financial max-w-full overflow-x-auto border bg-black p-4 text-sm" style={{ borderColor: "var(--line)", color: "var(--ink)" }}>
+            <pre className="financial max-w-full overflow-x-auto border bg-[#111210] p-4 text-sm" style={{ borderColor: "var(--line)", color: "var(--ink)" }}>
               {JSON.stringify(result.parsedAction, null, 2)}
             </pre>
           </div>
 
           <div>
             <h3 className="eyebrow mb-2">Raw response</h3>
-            <pre className="financial max-w-full overflow-x-auto border bg-black p-4 text-sm" style={{ borderColor: "var(--line)", color: "var(--ink)" }}>
+            <pre className="financial max-w-full overflow-x-auto border bg-[#111210] p-4 text-sm" style={{ borderColor: "var(--line)", color: "var(--ink)" }}>
               {JSON.stringify(result.rawResponse, null, 2)}
             </pre>
           </div>
@@ -169,7 +172,7 @@ export function TestAgentForm() {
           {result.execution ? (
             <div>
               <h3 className="eyebrow mb-2">Database execution</h3>
-              <pre className="financial max-w-full overflow-x-auto border bg-black p-4 text-sm" style={{ borderColor: "var(--line)", color: "var(--ink)" }}>
+              <pre className="financial max-w-full overflow-x-auto border bg-[#111210] p-4 text-sm" style={{ borderColor: "var(--line)", color: "var(--ink)" }}>
                 {JSON.stringify(result.execution, null, 2)}
               </pre>
             </div>

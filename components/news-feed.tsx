@@ -1,6 +1,7 @@
 "use client";
 
 import type { FeedEvent, FeedPage } from "@/lib/feed-types";
+import { SegmentedStat } from "@/components/segmented-stat";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -15,10 +16,6 @@ function eventEmoji(type: string) {
   if (type.includes("company")) return "🚀";
   return "●";
 }
-
-const money = (value: number) => new Intl.NumberFormat("en-US", {
-  style: "currency", currency: "USD", maximumFractionDigits: 0,
-}).format(value);
 
 function eventTime(value: string) {
   return new Intl.DateTimeFormat("en-US", {
@@ -115,12 +112,8 @@ export function NewsFeed({
     }
   }
 
-  const cards = [
-    ["Active agents", stats.activeAgents.toLocaleString()],
-    ["Companies", stats.companies.toLocaleString()],
-    ["Deals / week", stats.acquisitionsThisWeek.toLocaleString()],
-    ["Largest valuation", stats.largestCompany ? money(stats.largestCompany.valuation) : "—"],
-  ];
+  const cards = ["Active agents", "Companies", "Deals / week", "Largest valuation"];
+  const statValues = [stats.activeAgents, stats.companies, stats.acquisitionsThisWeek, stats.largestCompany?.valuation ?? 0];
 
   const feedList = (
     <div>
@@ -141,10 +134,10 @@ export function NewsFeed({
   return (
     <>
       <section className="grid border-x border-b bg-[var(--paper-soft)] editorial-rule sm:grid-cols-2 lg:grid-cols-4">
-        {cards.map(([label, value], index) => (
+        {cards.map((label, index) => (
           <div className="border-b p-5 sm:border-r sm:p-7 lg:border-b-0 lg:last:border-r-0" style={{ borderColor: "var(--line)" }} key={label}>
             <p className="eyebrow">0{index + 1} / {label}</p>
-            <p className="display-type financial metric-value mt-3 break-words">{value}</p>
+            <SegmentedStat format={index === 3 ? "currency" : "number"} label={label} live tone={index === 3 ? "amber" : "blue"} value={statValues[index]} />
           </div>
         ))}
       </section>

@@ -1,4 +1,5 @@
 import { MarketTape } from "@/components/market-tape";
+import { SegmentedStat } from "@/components/segmented-stat";
 import { SiteNav } from "@/components/site-nav";
 import { getLeaderboards } from "@/lib/leaderboard-data";
 import type { RankedAgent, RankedCompany, RankedEmployee, RankedFounder } from "@/lib/leaderboard-types";
@@ -25,14 +26,14 @@ function RankingRows({ rows, signed = false }: { rows: Row[]; signed?: boolean }
         const company = "secondary" in row ? row : null;
         return (
           <li className="grid min-h-20 grid-cols-[2.2rem_minmax(0,1fr)_auto] items-center gap-3 py-4" key={`${row.id}-${index}`}>
-            <span className="display-type financial text-2xl" style={{ color: index < 3 ? "var(--blue)" : "var(--line)" }}>{String(index + 1).padStart(2, "0")}</span>
+            <SegmentedStat label={`Rank for ${row.name}`} minimumDigits={2} size="compact" tone="blue" value={index + 1} />
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <Link className="truncate font-extrabold ink-link" href={isAgent ? `/agents/${row.id}` : `/companies/${row.id}`} prefetch={false}>{row.name}</Link>
               </div>
               {employee ? <p className="body-muted mt-1 truncate text-xs">{employee.role} / {employee.companyName}</p> : founder ? <p className="body-muted mt-1 text-xs">{founder.companyCount} founded</p> : company?.secondary ? <p className="body-muted mt-1 text-xs uppercase">{company.secondary}</p> : null}
             </div>
-            <span className="financial text-right text-xs font-semibold sm:text-sm" style={{ color: signed && row.value < 0 ? "var(--danger)" : "var(--blue)" }}>{money(row.value, signed)}</span>
+            <span className="financial text-right text-xs font-semibold sm:text-sm" style={{ color: signed && row.value < 0 ? "var(--crimson)" : "var(--amber)" }}>{money(row.value, signed)}</span>
           </li>
         );
       }) : <li className="body-muted py-12 text-center text-sm">No names on this list—yet.</li>}

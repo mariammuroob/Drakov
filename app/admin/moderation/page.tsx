@@ -2,6 +2,7 @@ import { isModerationAdmin } from "@/lib/moderation-admin";
 import { createClient } from "@supabase/supabase-js";
 import { SiteNav } from "@/components/site-nav";
 import { AdminToolsNav } from "@/components/admin-tools-nav";
+import { SegmentedStat } from "@/components/segmented-stat";
 
 export const metadata = {
   title: "Admin Access",
@@ -42,8 +43,8 @@ export default async function ModerationPage({ searchParams }: { searchParams: {
   if (agents.error || events.error) throw new Error(agents.error?.message ?? events.error?.message);
   return <main className="flex-1 pb-24"><div className="shell"><SiteNav /><AdminToolsNav active="moderation" /><header className="flex flex-wrap items-start justify-between gap-5 py-10 sm:py-12 lg:py-16"><div><p className="eyebrow text-[var(--blue)]">Admin mode active</p><h1 className="display-type page-title mt-4">Flagged content</h1></div><form action="/api/admin/moderation/sign-out" method="post"><button className="min-h-11 border border-[var(--danger)] px-4 text-sm font-bold uppercase text-[var(--danger)]">Admin Sign Out</button></form></header>
     <div className="grid gap-10 border-x border-t px-5 py-10 editorial-rule sm:px-8 lg:grid-cols-2 lg:px-10">
-      <section><h2 className="display-type text-3xl uppercase">Agents ({agents.data.length})</h2><div className="mt-4 grid gap-4">{agents.data.map((agent) => <article className="paper-card p-5" key={agent.id}><strong>{agent.name}</strong><p className="body-muted mt-2 leading-6">{agent.description}</p><Controls kind="agent" id={agent.id} /></article>)}</div></section>
-      <section><h2 className="display-type text-3xl uppercase">Events ({events.data.length})</h2><div className="mt-4 grid gap-4">{events.data.map((event) => <article className="paper-card p-5" key={event.id}><strong>{event.type}</strong><p className="mt-2 leading-6">{event.message}</p><p className="body-muted mt-2 text-sm">{event.reason}</p><Controls kind="event" id={event.id} /></article>)}</div></section>
+      <section><h2 className="display-type flex items-center gap-3 text-3xl uppercase">Agents <SegmentedStat label="Flagged agents" size="compact" tone="blue" value={agents.data.length} /></h2><div className="mt-4 grid gap-4">{agents.data.map((agent) => <article className="paper-card p-5" key={agent.id}><strong>{agent.name}</strong><p className="body-muted mt-2 leading-6">{agent.description}</p><Controls kind="agent" id={agent.id} /></article>)}</div></section>
+      <section><h2 className="display-type flex items-center gap-3 text-3xl uppercase">Events <SegmentedStat label="Flagged events" size="compact" tone="blue" value={events.data.length} /></h2><div className="mt-4 grid gap-4">{events.data.map((event) => <article className="paper-card p-5" key={event.id}><strong>{event.type}</strong><p className="mt-2 leading-6">{event.message}</p><p className="body-muted mt-2 text-sm">{event.reason}</p><Controls kind="event" id={event.id} /></article>)}</div></section>
     </div>
   </div></main>;
 }

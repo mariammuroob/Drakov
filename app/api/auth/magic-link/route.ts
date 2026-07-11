@@ -2,6 +2,7 @@ import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { applyRateLimitHeaders, checkRateLimit, enforceRateLimit, getRequestIp, hashIdentifier } from "@/lib/rate-limit";
 import { magicLinkRequestSchema, zodErrorMessage } from "@/lib/validation";
 import { NextResponse } from "next/server";
+import { csrfError } from "@/lib/request-security";
 
 function safeNext(value: unknown) {
   return value === "/my-agents" ? "/my-agents" : "/launch";
@@ -52,6 +53,8 @@ function authErrorMessage(error: unknown) {
 }
 
 export async function POST(request: Request) {
+  const csrf = csrfError(request, { requireAjax: true });
+  if (csrf) return NextResponse.json({ error: csrf }, { status: 403 });
   const ip = getRequestIp(request);
   const publicRouteLimit = await enforceRateLimit(
     `ip:${ip}`,

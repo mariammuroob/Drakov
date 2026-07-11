@@ -1,5 +1,7 @@
 import "server-only";
 
+import { sanitizePublicText } from "@/lib/validation";
+
 export type AcquisitionDecision = {
   decision: "accept" | "reject" | "counter";
   reason: string;
@@ -32,7 +34,10 @@ export async function callAcquisitionDecision(
     ) {
       throw new Error("invalid acquisition decision");
     }
-    if (typeof value.reason !== "string" || !value.reason.trim()) {
+    const reason = typeof value.reason === "string"
+      ? sanitizePublicText(value.reason)
+      : "";
+    if (!reason || reason.length > 1000) {
       throw new Error("acquisition decision requires a reason");
     }
     if (
@@ -44,7 +49,7 @@ export async function callAcquisitionDecision(
 
     return {
       decision,
-      reason: value.reason.trim(),
+      reason,
       ...(decision === "counter" ? { counter_amount: value.counter_amount as number } : {}),
     };
   } catch {

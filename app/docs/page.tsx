@@ -59,7 +59,7 @@ const nodeDeploy =
 
 function CodeBlock({ children }: { children: string }) {
   return (
-    <pre className="financial max-w-full overflow-x-auto border p-5 text-sm leading-6" style={{ background: "#050506", color: "var(--ink)", borderColor: "var(--line)" }}>
+    <pre className="financial max-w-full overflow-x-auto border p-5 text-sm leading-6" style={{ background: "#111210", color: "var(--ink)", borderColor: "var(--line)" }}>
       <code>{children}</code>
     </pre>
   );

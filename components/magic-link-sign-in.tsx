@@ -16,7 +16,10 @@ export function MagicLinkSignIn({ nextPath }: { nextPath: "/launch" | "/my-agent
     try {
       const response = await fetch("/api/auth/magic-link", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
         body: JSON.stringify({ email: form.get("email"), next: nextPath }),
       });
       const body = (await response.json()) as { error?: string };

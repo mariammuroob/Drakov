@@ -20,7 +20,7 @@ export async function SiteNav() {
   const adminActive = isModerationAdmin();
 
   return (
-    <nav className="flex min-h-16 items-center justify-between border-b bg-black/80 px-4 editorial-rule" aria-label="Primary navigation">
+    <nav className="flex min-h-16 items-center justify-between border-b bg-[rgba(12,10,7,.94)] px-4 editorial-rule" aria-label="Primary navigation">
       <NavLink className="nav-logo inline-flex min-h-11 items-center text-lg font-extrabold uppercase tracking-[0.08em] chromatic-text" href="/">{SITE_NAME}</NavLink>
       <div className="hidden items-center gap-7 text-[11px] font-bold uppercase tracking-[0.16em] md:flex">
         {links.map(([href, label]) => <NavLink className="ink-link" href={href} key={href}>{label}</NavLink>)}

@@ -5,6 +5,17 @@ import { usePathname } from "next/navigation";
 
 const REVEAL_SELECTOR = "[data-reveal]";
 const GLITCH_SELECTOR = "[data-glitch]";
+const COLOR_SECTION_SELECTOR = "main header, main section";
+
+const COLOR_STOPS = [
+  { background: [12, 10, 7], accent: [200, 163, 122] },
+  { background: [17, 18, 16], accent: [168, 134, 99] },
+] as const;
+
+function mixedColor(from: readonly number[], to: readonly number[], progress: number) {
+  const values = from.map((channel, index) => Math.round(channel + (to[index] - channel) * progress));
+  return `rgb(${values.join(" ")})`;
+}
 
 export function MotionOrchestrator() {
   const pathname = usePathname();
@@ -58,6 +69,79 @@ export function MotionOrchestrator() {
       revealObserver.disconnect();
       timeouts.forEach((timeout) => window.clearTimeout(timeout));
       delete document.documentElement.dataset.motion;
+    };
+  }, [pathname]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sections = Array.from(document.querySelectorAll<HTMLElement>(COLOR_SECTION_SELECTOR))
+      .filter((section) => !section.parentElement?.closest("header, section"));
+    let colorFrame = 0;
+
+    const applyStablePalette = () => {
+      root.style.setProperty("--paper", "#0c0a07");
+      root.style.setProperty("--blue", "#c8a37a");
+      root.style.setProperty("--accent", "#c8a37a");
+      root.style.setProperty("--amber", "#c8a37a");
+      root.style.setProperty("--crimson", "#a88663");
+      root.style.setProperty("--danger", "#a88663");
+    };
+
+    const updateColors = () => {
+      colorFrame = 0;
+      if (media.matches || sections.length < 2) {
+        applyStablePalette();
+        return;
+      }
+
+      const focus = window.scrollY + window.innerHeight * 0.5;
+      const centers = sections.map((section) => {
+        const bounds = section.getBoundingClientRect();
+        return bounds.top + window.scrollY + bounds.height * 0.5;
+      });
+      const followingSection = centers.findIndex((center) => center > focus);
+      let sectionIndex = followingSection === -1 ? centers.length - 1 : followingSection - 1;
+      sectionIndex = Math.max(0, Math.min(sectionIndex, centers.length - 1));
+      const nextIndex = Math.min(sectionIndex + 1, centers.length - 1);
+      const distance = Math.max(1, centers[nextIndex] - centers[sectionIndex]);
+      const progress = nextIndex === sectionIndex
+        ? 0
+        : Math.max(0, Math.min(1, (focus - centers[sectionIndex]) / distance));
+      const from = COLOR_STOPS[sectionIndex % COLOR_STOPS.length];
+      const to = COLOR_STOPS[nextIndex % COLOR_STOPS.length];
+      const background = mixedColor(from.background, to.background, progress);
+      const accent = mixedColor(from.accent, to.accent, progress);
+
+      root.style.setProperty("--paper", background);
+      root.style.setProperty("--blue", accent);
+      root.style.setProperty("--accent", accent);
+      root.style.setProperty("--amber", accent);
+      root.style.setProperty("--crimson", "#a88663");
+      root.style.setProperty("--danger", "#a88663");
+    };
+
+    const scheduleColorUpdate = () => {
+      if (colorFrame) return;
+      colorFrame = window.requestAnimationFrame(updateColors);
+    };
+
+    const handleMotionPreference = () => {
+      if (media.matches) applyStablePalette();
+      else scheduleColorUpdate();
+    };
+
+    scheduleColorUpdate();
+    window.addEventListener("scroll", scheduleColorUpdate, { passive: true });
+    window.addEventListener("resize", scheduleColorUpdate);
+    media.addEventListener("change", handleMotionPreference);
+
+    return () => {
+      window.cancelAnimationFrame(colorFrame);
+      window.removeEventListener("scroll", scheduleColorUpdate);
+      window.removeEventListener("resize", scheduleColorUpdate);
+      media.removeEventListener("change", handleMotionPreference);
+      applyStablePalette();
     };
   }, [pathname]);
 

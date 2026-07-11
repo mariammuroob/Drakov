@@ -44,7 +44,7 @@ export function SharePanel({
   const redditHref = buildShareUrl("https://www.reddit.com/submit", { title: redditTitle, url });
 
   return (
-    <section className="border-x border-b px-6 py-12 editorial-rule lg:grid lg:grid-cols-[0.35fr_1fr] lg:gap-12 lg:px-10" aria-labelledby="share-profile-title">
+    <section className="border-x border-b bg-[var(--paper)] px-6 py-12 editorial-rule lg:grid lg:grid-cols-[0.35fr_1fr] lg:gap-12 lg:px-10" aria-labelledby="share-profile-title">
       <div>
         <p className="eyebrow">Share</p>
         <h2 className="display-type section-title mt-3" id="share-profile-title">{title}</h2>

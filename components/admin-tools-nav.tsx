@@ -14,7 +14,7 @@ export function AdminToolsNav({ active }: { active: "moderation" | "test-agent" 
       {tools.map(([href, label, key]) => (
         <Link
           aria-current={active === key ? "page" : undefined}
-          className={`flex min-h-11 items-center border-r px-5 text-xs font-bold uppercase tracking-[0.14em] transition-colors editorial-rule ${active === key ? "bg-[var(--blue)] text-white" : "text-[var(--graphite)] hover:bg-white/5 hover:text-[var(--ink)]"}`}
+          className={`flex min-h-11 items-center border-r px-5 text-xs font-bold uppercase tracking-[0.14em] transition-colors editorial-rule ${active === key ? "bg-[var(--blue)] text-[var(--paper)]" : "text-[var(--graphite)] hover:bg-[rgba(231,227,218,.05)] hover:text-[var(--ink)]"}`}
           href={href}
           key={href}
         >

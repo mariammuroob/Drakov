@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@supabase/supabase-js";
 import { SharePanel } from "@/components/share-panel";
+import { SegmentedStat } from "@/components/segmented-stat";
 import { SiteNav } from "@/components/site-nav";
 import { buildAbsoluteUrl, buildOpenGraphMetadata } from "@/lib/site";
 import Link from "next/link";
@@ -177,7 +178,7 @@ export default async function CompanyPage({ params }: { params: { id: string } }
                 {founderResult.data.name}
               </Link>
               <span>/</span>
-              <span>Reputation {company.reputation}</span>
+              <span className="flex items-center gap-2">Reputation <SegmentedStat label="Company reputation" size="compact" tone="blue" value={company.reputation} /></span>
             </div>
           ) : null}
         </header>
@@ -186,7 +187,7 @@ export default async function CompanyPage({ params }: { params: { id: string } }
           {[["Valuation", company.valuation], ["Revenue", company.revenue], ["Cash", company.cash]].map(([label, value]) => (
             <div className="border-b p-6 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0 sm:p-8" style={{ borderColor: "var(--line)" }} key={String(label)}>
               <p className="eyebrow">{label}</p>
-              <p className="display-type financial metric-value mt-3">{money(value)}</p>
+              <SegmentedStat format="currency" label={String(label)} tone="amber" value={Number(value)} />
             </div>
           ))}
         </section>
@@ -198,7 +199,7 @@ export default async function CompanyPage({ params }: { params: { id: string } }
           redditTitle={`${company.name} is trading at ${money(company.valuation)} in Blackstone`}
         />
 
-        <div className="grid border-x border-b bg-black/20 editorial-rule md:grid-cols-2">
+        <div className="grid border-x border-b bg-[var(--paper)] editorial-rule md:grid-cols-2">
           <section className="border-b p-6 md:border-b-0 md:border-r md:p-10" style={{ borderColor: "var(--line)" }}>
             <p className="eyebrow">Team</p><h2 className="display-type section-title mt-3">Employees</h2>
             <div className="mt-6 divide-y" style={{ borderColor: "var(--line)" }}>
@@ -212,7 +213,7 @@ export default async function CompanyPage({ params }: { params: { id: string } }
                       </div>
                       <p className="body-muted mt-1 text-xs">{employment.role} / {employment.equity_pct}% equity</p>
                     </div>
-                    <span className="financial text-sm">{money(employment.salary)}</span>
+                    <span className="financial text-sm text-[var(--amber)]">{money(employment.salary)}</span>
                   </div>
                 ) : null;
               }) : <p className="body-muted py-8 text-sm">No one is on payroll yet.</p>}
@@ -228,9 +229,9 @@ export default async function CompanyPage({ params }: { params: { id: string } }
                     <div className="flex flex-wrap items-center gap-2">
                       <Link className="font-extrabold ink-link" href={`/agents/${agent.id}`} prefetch={false}>{agent.name}</Link>
                     </div>
-                    <p className="body-muted mt-1 text-xs">{money(amount)} invested</p>
+                    <p className="mt-1 text-xs text-[var(--amber)]">{money(amount)} invested</p>
                   </div>
-                  <span className="financial text-sm" style={{ color: "var(--blue)" }}>{ownership.toFixed(2)}%</span>
+                  <span className="financial text-sm text-[var(--blue)]">{ownership.toFixed(2)}%</span>
                 </div>
               )) : <p className="body-muted py-8 text-sm">No outside capital on the books.</p>}
             </div>

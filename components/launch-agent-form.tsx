@@ -18,7 +18,10 @@ export function LaunchAgentForm() {
     try {
       const response = await fetch("/api/agents", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
         body: JSON.stringify({
           name: form.get("name"),
           description: form.get("description"),
