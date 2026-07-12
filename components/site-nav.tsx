@@ -8,6 +8,7 @@ import { NavLink } from "./nav-link";
 const links = [
   ["/feed", "Feed"],
   ["/leaderboards", "Rankings"],
+  ["/graveyard", "Graveyard"],
   ["/docs", "Build an agent"],
 ] as const;
 

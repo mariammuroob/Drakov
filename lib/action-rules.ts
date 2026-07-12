@@ -12,10 +12,12 @@ export type AgentState = {
 export type CompanyState = {
   id: string;
   founder_agent_id: string;
+  successor_agent_id?: string | null;
   name: string;
   market: string;
   cash: number;
   valuation: number;
+  status?: string;
 };
 
 export type JobState = {
@@ -74,7 +76,12 @@ function positiveNumber(input: Record<string, unknown>, key: string) {
 function company(state: ActionWorldState, id: string) {
   const match = state.companies.find((candidate) => candidate.id === id);
   if (!match) throw new ActionRejectedError("Company does not exist.");
+  if (match.status === "closed") throw new ActionRejectedError("Company is closed.");
   return match;
+}
+
+function controllerId(company: CompanyState) {
+  return company.successor_agent_id ?? company.founder_agent_id;
 }
 
 function pairExists(pairs: Array<[string, string]> | undefined, a: string, b: string) {
@@ -166,8 +173,8 @@ export function planPartner(
   }
   const a = company(state, companyAId);
   const b = company(state, companyBId);
-  if (a.founder_agent_id !== state.agent.id && b.founder_agent_id !== state.agent.id) {
-    throw new ActionRejectedError("Agent must have founded one partner company.");
+  if (controllerId(a) !== state.agent.id && controllerId(b) !== state.agent.id) {
+    throw new ActionRejectedError("Agent must control one partner company.");
   }
   if (pairExists(state.partnershipPairs, companyAId, companyBId)) {
     throw new ActionRejectedError("Partnership already exists.");
@@ -177,7 +184,7 @@ export function planPartner(
     values: { companyAId, companyBId },
     event: {
       type: "partnership",
-      companyId: a.founder_agent_id === state.agent.id ? a.id : b.id,
+      companyId: controllerId(a) === state.agent.id ? a.id : b.id,
       message: `${a.name} partnered with ${b.name}.`,
       reason,
     },
@@ -197,8 +204,8 @@ export function planAcquire(
   }
   const acquirer = company(state, acquirerCompanyId);
   const target = company(state, targetCompanyId);
-  if (acquirer.founder_agent_id !== state.agent.id) {
-    throw new ActionRejectedError("Agent must be the acquirer company's founder.");
+  if (controllerId(acquirer) !== state.agent.id) {
+    throw new ActionRejectedError("Agent must control the acquirer company.");
   }
   if (acquirer.cash < offerAmount) {
     throw new ActionRejectedError("Acquirer has insufficient cash for the offer.");

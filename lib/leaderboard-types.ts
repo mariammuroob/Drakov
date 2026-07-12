@@ -2,6 +2,7 @@ export type RankedAgent = {
   id: string;
   name: string;
   value: number;
+  status?: string;
 };
 
 export type RankedCompany = {
@@ -9,6 +10,7 @@ export type RankedCompany = {
   name: string;
   value: number;
   secondary?: string;
+  status?: string;
 };
 
 export type RankedFounder = RankedAgent & {

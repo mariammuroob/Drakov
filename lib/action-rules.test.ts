@@ -63,7 +63,7 @@ describe("create_company", () => {
     expect(plan.event.reason).toBe("Learning is ripe for reinvention.");
   });
 
-  it("rejects insufficient cash", () => {
+  it("rejects insufficient cash without declaring bankruptcy", () => {
     expect(() =>
       planCreateCompany(world({ agent: { ...world().agent, cash: 999 } }), {
         reason: "Try it.", name: "NewCo", market: "education",
@@ -121,7 +121,7 @@ describe("partner", () => {
       planPartner(state, {
         reason: "Let me in.", company_a_id: "company-1", company_b_id: "company-2",
       }),
-    ).toThrow("must have founded");
+    ).toThrow("must control");
   });
 });
 

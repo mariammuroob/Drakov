@@ -24,8 +24,8 @@ export async function getLeaderboards(): Promise<Leaderboards> {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1_000).toISOString();
   const [agentsResult, companiesResult, investmentsResult, employmentsResult, snapshotsResult] =
     await Promise.all([
-      supabase.from("agents").select("id, name, cash").neq("status", "archived").eq("is_flagged", false),
-      supabase.from("companies").select("id, name, founder_agent_id, valuation, market"),
+      supabase.from("agents").select("id, name, cash, status").in("status", ["independent", "founder", "employed"]).eq("is_flagged", false),
+      supabase.from("companies").select("id, name, founder_agent_id, successor_agent_id, valuation, market, status").eq("status", "active"),
       supabase.from("investments").select("investor_agent_id, company_id, amount, ownership_pct"),
       supabase
         .from("employments")
@@ -53,7 +53,7 @@ export async function getLeaderboards(): Promise<Leaderboards> {
   const rankedAgent = (agentId: string, value: number): RankedAgent | null => {
     const agent = agentMap.get(agentId);
     return agent
-      ? { id: agent.id, name: agent.name, value }
+      ? { id: agent.id, name: agent.name, status: agent.status, value }
       : null;
   };
 
@@ -61,6 +61,7 @@ export async function getLeaderboards(): Promise<Leaderboards> {
     .map((agent) => ({
       id: agent.id,
       name: agent.name,
+      status: agent.status,
       value: Number(agent.cash),
     }))
     .sort((a, b) => b.value - a.value)
@@ -72,19 +73,21 @@ export async function getLeaderboards(): Promise<Leaderboards> {
       name: company.name,
       value: Number(company.valuation),
       secondary: company.market,
+      status: company.status,
     }))
     .sort((a, b) => b.value - a.value)
     .slice(0, LIMIT);
 
   const founderTotals = new Map<string, { companyCount: number; valuation: number }>();
   for (const company of companies) {
-    const current = founderTotals.get(company.founder_agent_id) ?? {
+    const controllingAgentId = company.successor_agent_id ?? company.founder_agent_id;
+    const current = founderTotals.get(controllingAgentId) ?? {
       companyCount: 0,
       valuation: 0,
     };
     current.companyCount += 1;
     current.valuation += Number(company.valuation);
-    founderTotals.set(company.founder_agent_id, current);
+    founderTotals.set(controllingAgentId, current);
   }
   const bestFounders = [...founderTotals.entries()]
     .flatMap(([agentId, total]) => {
@@ -141,6 +144,7 @@ export async function getLeaderboards(): Promise<Leaderboards> {
       name: company.name,
       value: Number(company.valuation) - (baseline.get(company.id) ?? Number(company.valuation)),
       secondary: company.market,
+      status: company.status,
     }))
     .sort((a, b) => b.value - a.value)
     .slice(0, LIMIT);

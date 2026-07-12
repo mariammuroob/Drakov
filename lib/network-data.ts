@@ -38,8 +38,8 @@ function client() {
 export async function getNetworkData(): Promise<NetworkData> {
   const supabase = client();
   const [agentsResult, companiesResult, investmentsResult, rivalriesResult, partnershipsResult] = await Promise.all([
-    supabase.from("agents").select("id, name, cash, status").neq("status", "archived").eq("is_flagged", false),
-    supabase.from("companies").select("id, name, valuation, market, founder_agent_id"),
+    supabase.from("agents").select("id, name, cash, status").in("status", ["independent", "founder", "employed"]).eq("is_flagged", false),
+    supabase.from("companies").select("id, name, valuation, market, founder_agent_id, status").eq("status", "active"),
     supabase.from("investments").select("id, investor_agent_id, company_id, amount").order("amount", { ascending: false }),
     supabase.from("rivalries").select("id, agent_a_id, agent_b_id, relationship_type, intensity, updated_at").order("updated_at", { ascending: false }),
     supabase.from("partnerships").select("id, company_a_id, company_b_id"),

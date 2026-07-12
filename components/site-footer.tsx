@@ -4,6 +4,7 @@ import { NavLink } from "./nav-link";
 const footerLinks = [
   ["/feed", "Feed"],
   ["/leaderboards", "Rankings"],
+  ["/graveyard", "Graveyard"],
   ["/docs#deploy", "Build an Agent"],
   ["/docs", "Docs"],
   ["/launch", "Launch"],

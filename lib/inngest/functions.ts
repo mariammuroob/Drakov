@@ -15,7 +15,7 @@ const ACTIVE_AGENT_STATUSES = ["independent", "founder", "employed"];
 
 type TickError = { agentId?: string; phase: string; message: string };
 type Agent = { id: string; name: string; endpoint_url: string | null; cash: number | string; reputation: number; status: string };
-type Company = { id: string; founder_agent_id: string; name: string; market: string; cash: number | string; revenue: number | string; valuation: number | string };
+type Company = { id: string; founder_agent_id: string; successor_agent_id?: string | null; name: string; market: string; cash: number | string; revenue: number | string; valuation: number | string; status?: string };
 type WorkPayload =
   | { kind: "action"; gameState: Record<string, unknown> }
   | { kind: "acquisition"; acquisitionId: string; gameState: Record<string, unknown> }
@@ -77,7 +77,7 @@ async function reserveRealAgents(currentTickKey: string) {
   const [agentsResult, companiesResult, employmentsResult, jobsResult, acquisitionsResult] = await Promise.all([
     supabase.from("agents").select("id, name, endpoint_url, cash, reputation, status").eq("is_npc", false).eq("is_flagged", false)
       .in("status", ACTIVE_AGENT_STATUSES).order("created_at", { ascending: true }),
-    supabase.from("companies").select("id, founder_agent_id, name, market, cash, revenue, valuation"),
+    supabase.from("companies").select("id, founder_agent_id, successor_agent_id, name, market, cash, revenue, valuation, status").eq("status", "active"),
     supabase.from("employments").select("id, agent_id, company_id, role, salary, equity_pct, started_at").is("ended_at", null),
     supabase.from("jobs").select("id, company_id, title, salary, equity_pct").eq("status", "open"),
     supabase.from("acquisitions").select("id, acquirer_company_id, target_company_id, offer_amount, created_at")
@@ -147,7 +147,7 @@ async function reserveNpcAgents(tickRunId: string) {
     supabase.from("agents").select("id, name, cash, status").eq("is_npc", true).neq("status", "bankrupt").neq("status", "archived")
       .eq("is_flagged", false).order("created_at", { ascending: true }),
     supabase.from("npc_profiles").select("agent_id, archetype, config, ticks_acted"),
-    supabase.from("companies").select("id, founder_agent_id, name, cash, valuation"),
+    supabase.from("companies").select("id, founder_agent_id, successor_agent_id, name, cash, valuation, status").eq("status", "active"),
   ]);
   const queryError = [agentsResult.error, profilesResult.error, companiesResult.error].find(Boolean);
   if (queryError) throw new Error(queryError.message);
@@ -180,12 +180,16 @@ async function markFailed(tickRunId: string, agentId: string, action: string, me
 
 async function processRealAgent(tickRunId: string, currentTickKey: string, agentId: string) {
   const supabase = serviceClient();
-  const { data: reservation, error } = await supabase.from("agent_tick_actions").select("completed_at, payload, agents!inner(endpoint_url)")
+  const { data: reservation, error } = await supabase.from("agent_tick_actions").select("completed_at, payload, agents!inner(endpoint_url, status, cash)")
     .eq("tick_run_id", tickRunId).eq("agent_id", agentId).single();
   if (error) throw new Error(error.message);
   if (reservation.completed_at) return;
   const payload = reservation.payload as WorkPayload;
-  const relation = reservation.agents as unknown as { endpoint_url: string | null };
+  const relation = reservation.agents as unknown as { endpoint_url: string | null; status: string; cash: number | string };
+  if (!ACTIVE_AGENT_STATUSES.includes(relation.status) || Number(relation.cash) <= 0) {
+    await markFailed(tickRunId, agentId, "skipped_terminal_agent", `Agent is no longer active at execution time: ${relation.status}.`);
+    return;
+  }
   if (!relation.endpoint_url) throw new Error("Agent endpoint is not configured.");
   if (!(await canCallAgentEndpoint(relation.endpoint_url, currentTickKey))) throw new Error("Tick endpoint rate limit exceeded: this endpoint was already called during the current tick interval.");
 
@@ -240,6 +244,8 @@ async function finalizeTick(tickRunId: string, currentTickKey: string) {
   const supabase = serviceClient();
   const { error: snapshotError } = await supabase.rpc("capture_company_valuations", { p_captured_at: currentTickKey });
   if (snapshotError) reportTickFailure(snapshotError, { tickKey: currentTickKey, phase: "valuation_snapshot", message: snapshotError.message });
+  const { error: closeError } = await supabase.rpc("snapshot_daily_market_close", { p_market_date: currentTickKey.slice(0, 10) });
+  if (closeError) reportTickFailure(closeError, { tickKey: currentTickKey, phase: "daily_market_close", message: closeError.message });
   const { data: summary, error } = await supabase.rpc("finalize_inngest_tick", {
     p_tick_run_id: tickRunId,
     p_tick_key: currentTickKey,

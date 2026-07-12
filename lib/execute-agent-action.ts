@@ -34,7 +34,7 @@ export async function executeAgentAction(
       supabase.from("agents").select("id, name, cash, status").eq("id", agentId).maybeSingle(),
       supabase
         .from("companies")
-        .select("id, founder_agent_id, name, market, cash, valuation"),
+        .select("id, founder_agent_id, successor_agent_id, name, market, cash, valuation, status"),
       supabase.from("jobs").select("id, company_id, title, salary, equity_pct, status"),
       supabase
         .from("employments")

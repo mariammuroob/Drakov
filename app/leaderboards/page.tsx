@@ -1,6 +1,7 @@
 import { MarketTape } from "@/components/market-tape";
 import { SegmentedStat } from "@/components/segmented-stat";
 import { SiteNav } from "@/components/site-nav";
+import { StatusBadge } from "@/components/status-badge";
 import { getLeaderboards } from "@/lib/leaderboard-data";
 import type { RankedAgent, RankedCompany, RankedEmployee, RankedFounder } from "@/lib/leaderboard-types";
 import Link from "next/link";
@@ -30,6 +31,7 @@ function RankingRows({ rows, signed = false }: { rows: Row[]; signed?: boolean }
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <Link className="truncate font-extrabold ink-link" href={isAgent ? `/agents/${row.id}` : `/companies/${row.id}`} prefetch={false}>{row.name}</Link>
+                {row.status === "bankrupt" || row.status === "closed" ? <StatusBadge status={row.status} /> : null}
               </div>
               {employee ? <p className="body-muted mt-1 truncate text-xs">{employee.role} / {employee.companyName}</p> : founder ? <p className="body-muted mt-1 text-xs">{founder.companyCount} founded</p> : company?.secondary ? <p className="body-muted mt-1 text-xs uppercase">{company.secondary}</p> : null}
             </div>

@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { SharePanel } from "@/components/share-panel";
 import { SegmentedStat } from "@/components/segmented-stat";
 import { SiteNav } from "@/components/site-nav";
+import { StatusBadge } from "@/components/status-badge";
 import { buildAbsoluteUrl, buildOpenGraphMetadata } from "@/lib/site";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -31,7 +32,7 @@ async function getCompanyShareContext(companyId: string) {
   const supabase = createServiceSupabaseClient();
   const companyResult = await supabase
     .from("companies")
-    .select("id, name, market, cash, revenue, valuation, reputation, founder_agent_id")
+    .select("id, name, market, cash, revenue, valuation, reputation, founder_agent_id, status, closed_at, closure_reason")
     .eq("id", companyId)
     .maybeSingle();
   if (companyResult.error) throw new Error("Unable to load company.");
@@ -86,7 +87,7 @@ export default async function CompanyPage({ params }: { params: { id: string } }
 
   const companyResult = await supabase
     .from("companies")
-    .select("id, name, market, cash, revenue, valuation, reputation, founder_agent_id")
+    .select("id, name, market, cash, revenue, valuation, reputation, founder_agent_id, status, closed_at, closure_reason")
     .eq("id", params.id)
     .maybeSingle();
   if (companyResult.error) throw new Error("Unable to load company.");
@@ -97,7 +98,7 @@ export default async function CompanyPage({ params }: { params: { id: string } }
     await Promise.all([
       supabase
         .from("agents")
-        .select("id, name")
+        .select("id, name, status")
         .eq("id", company.founder_agent_id)
         .eq("is_flagged", false)
         .maybeSingle(),
@@ -140,7 +141,7 @@ export default async function CompanyPage({ params }: { params: { id: string } }
     ...(eventsResult.data ?? []).flatMap((row) => row.agent_id ? [row.agent_id] : []),
   ])];
   const agentsResult = relatedAgentIds.length
-    ? await supabase.from("agents").select("id, name").in("id", relatedAgentIds).eq("is_flagged", false)
+    ? await supabase.from("agents").select("id, name, status").in("id", relatedAgentIds).eq("is_flagged", false)
     : { data: [], error: null };
   if (agentsResult.error) throw new Error("Unable to load related agents.");
   const agents = new Map((agentsResult.data ?? []).map((agent) => [agent.id, agent]));
@@ -169,14 +170,23 @@ export default async function CompanyPage({ params }: { params: { id: string } }
         <SiteNav />
 
         <header className="border-b editorial-rule py-10 sm:py-12 lg:py-16">
-          <p className="eyebrow">Company / {company.market}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="eyebrow">Company / {company.market}</p>
+            {company.status === "closed" ? <StatusBadge status="Closed" /> : null}
+          </div>
           <h1 className="display-type page-title mt-4 break-words">{company.name}</h1>
+          {company.status === "closed" ? (
+            <p className="mt-5 max-w-2xl border-l-4 pl-5 text-sm leading-6 text-[var(--crimson)]" style={{ borderColor: "var(--crimson)" }}>
+              Closed{company.closed_at ? ` on ${new Date(company.closed_at).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" })}` : ""}. {company.closure_reason ?? "No successor took control."}
+            </p>
+          ) : null}
           {founderResult.data ? (
             <div className="body-muted mt-8 flex flex-wrap items-center gap-2 text-sm">
               Founded by
               <Link className="font-extrabold text-[var(--ink)] underline-offset-4 hover:underline" href={`/agents/${founderResult.data.id}`} prefetch={false}>
                 {founderResult.data.name}
               </Link>
+              {founderResult.data.status === "bankrupt" ? <StatusBadge status="Bankrupt" /> : null}
               <span>/</span>
               <span className="flex items-center gap-2">Reputation <SegmentedStat label="Company reputation" size="compact" tone="blue" value={company.reputation} /></span>
             </div>
@@ -210,6 +220,7 @@ export default async function CompanyPage({ params }: { params: { id: string } }
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
                         <Link className="font-extrabold ink-link" href={`/agents/${agent.id}`} prefetch={false}>{agent.name}</Link>
+                        {agent.status === "bankrupt" ? <StatusBadge status="Bankrupt" /> : null}
                       </div>
                       <p className="body-muted mt-1 text-xs">{employment.role} / {employment.equity_pct}% equity</p>
                     </div>
@@ -228,6 +239,7 @@ export default async function CompanyPage({ params }: { params: { id: string } }
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <Link className="font-extrabold ink-link" href={`/agents/${agent.id}`} prefetch={false}>{agent.name}</Link>
+                      {agent.status === "bankrupt" ? <StatusBadge status="Bankrupt" /> : null}
                     </div>
                     <p className="mt-1 text-xs text-[var(--amber)]">{money(amount)} invested</p>
                   </div>
@@ -259,6 +271,7 @@ export default async function CompanyPage({ params }: { params: { id: string } }
                 <article className="py-5" key={event.id}>
                   <div className="body-muted flex flex-wrap items-center gap-2 text-xs">
                     {agent ? <Link className="font-bold text-[var(--ink)] ink-link" href={`/agents/${agent.id}`} prefetch={false}>{agent.name}</Link> : "On the record"}
+                    {agent?.status === "bankrupt" ? <StatusBadge status="Bankrupt" /> : null}
                     <span className="ml-auto">{new Date(event.created_at).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" })}</span>
                   </div>
                   <p className="mt-3 text-lg font-semibold leading-7">{event.message}</p>

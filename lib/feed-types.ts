@@ -11,8 +11,8 @@ export type FeedEvent = {
   message: string;
   reason: string;
   createdAt: string;
-  agent: { id: string; name: string } | null;
-  company: { id: string; name: string } | null;
+  agent: { id: string; name: string; status: string } | null;
+  company: { id: string; name: string; status?: string } | null;
 };
 
 export type FeedPage = {
@@ -26,7 +26,7 @@ export type HeroVoice = {
   id: string;
   reason: string;
   eventType: string;
-  agent: { id: string; name: string } | null;
+  agent: { id: string; name: string; status?: string } | null;
 };
 
 export type FeaturedRivalry = {

@@ -5,6 +5,7 @@ import { LaunchSuccessBanner } from "@/components/launch-success-banner";
 import { SharePanel } from "@/components/share-panel";
 import { SegmentedStat } from "@/components/segmented-stat";
 import { SiteNav } from "@/components/site-nav";
+import { StatusBadge } from "@/components/status-badge";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { isDurableUser } from "@/lib/auth";
 import { buildAbsoluteUrl, buildOpenGraphMetadata } from "@/lib/site";
@@ -156,7 +157,7 @@ export default async function AgentProfilePage({
   }
 
   const isOwner = Boolean(isDurableUser(user) && data.owner_id === user.id);
-  const [{ data: rivalryRows, error: rivalryError }, foundedCompaniesResult] = await Promise.all([
+  const [{ data: rivalryRows, error: rivalryError }, foundedCompaniesResult, eventsResult] = await Promise.all([
     supabase
       .from("rivalries")
       .select("id, agent_a_id, agent_b_id, relationship_type, intensity, updated_at")
@@ -165,11 +166,25 @@ export default async function AgentProfilePage({
       .order("updated_at", { ascending: false })
       .returns<Rivalry[]>(),
     supabase.from("companies").select("id").eq("founder_agent_id", data.id),
+    supabase
+      .from("events")
+      .select("id, type, message, reason, created_at, company_id")
+      .eq("agent_id", data.id)
+      .eq("is_flagged", false)
+      .order("created_at", { ascending: false })
+      .limit(50),
   ]);
   if (rivalryError) throw new Error(`Unable to load rivalries: ${rivalryError.message}`);
   if (foundedCompaniesResult.error) throw new Error(`Unable to load founded companies: ${foundedCompaniesResult.error.message}`);
+  if (eventsResult.error) throw new Error(`Unable to load agent events: ${eventsResult.error.message}`);
 
   const foundedCompanyIds = (foundedCompaniesResult.data ?? []).map((company) => company.id);
+  const eventCompanyIds = [...new Set((eventsResult.data ?? []).flatMap((event) => event.company_id ? [event.company_id] : []))];
+  const eventCompaniesResult = eventCompanyIds.length
+    ? await supabase.from("companies").select("id, name, status").in("id", eventCompanyIds)
+    : { data: [], error: null };
+  if (eventCompaniesResult.error) throw new Error(`Unable to load event companies: ${eventCompaniesResult.error.message}`);
+  const eventCompanies = new Map((eventCompaniesResult.data ?? []).map((company) => [company.id, company]));
   const activeHiresResult = foundedCompanyIds.length
     ? await supabase
       .from("employments")
@@ -218,9 +233,7 @@ export default async function AgentProfilePage({
               <h1 className="display-type page-title mt-4 break-words">{data.name}</h1>
             </div>
             <div className="flex flex-wrap items-center gap-3 lg:justify-end">
-              <span className="inline-flex min-h-8 items-center border px-3 text-xs font-bold uppercase tracking-wider editorial-rule">
-                {data.status}
-              </span>
+              <StatusBadge status={data.status} />
             </div>
           </div>
           <p className="body-muted mt-8 max-w-2xl text-lg leading-8 sm:text-xl">{data.description}</p>
@@ -262,9 +275,27 @@ export default async function AgentProfilePage({
 
         <section className="border-x px-6 py-14 editorial-rule lg:grid lg:grid-cols-[0.4fr_1fr] lg:gap-16 lg:px-10">
           <h2 className="display-type section-title">On the record.</h2>
-          <div className="mt-8 border-y-2 editorial-rule py-14 text-center lg:mt-0">
-            <p className="text-lg font-bold">Nothing on the record yet.</p>
-            <p className="body-muted mt-2 text-sm">The next decision will appear after a market tick.</p>
+          <div className="mt-8 divide-y border-y-2 editorial-rule lg:mt-0">
+            {(eventsResult.data ?? []).length ? (eventsResult.data ?? []).map((event) => {
+              const company = event.company_id ? eventCompanies.get(event.company_id) : null;
+              return (
+                <article className="py-5" key={event.id}>
+                  <div className="body-muted flex flex-wrap items-center gap-2 text-xs">
+                    <span>{event.type.replaceAll("_", " ")}</span>
+                    {company ? <><span>/</span><Link className="ink-link font-bold text-[var(--ink)]" href={`/companies/${company.id}`}>{company.name}</Link></> : null}
+                    {company?.status === "closed" ? <StatusBadge status="Closed" /> : null}
+                    <span className="ml-auto">{new Date(event.created_at).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" })}</span>
+                  </div>
+                  <p className="mt-3 text-lg font-semibold leading-7">{event.message}</p>
+                  {event.reason.trim() ? <p className="body-muted mt-2 text-sm leading-6">{event.reason}</p> : null}
+                </article>
+              );
+            }) : (
+              <div className="py-14 text-center">
+                <p className="text-lg font-bold">Nothing on the record yet.</p>
+                <p className="body-muted mt-2 text-sm">The next decision will appear after a market tick.</p>
+              </div>
+            )}
           </div>
         </section>
 

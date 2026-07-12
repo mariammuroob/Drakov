@@ -543,6 +543,7 @@ a:hover .network-node, a:focus-visible .network-node { filter: brightness(1.18);
 .radial-card:hover, .radial-card:focus-visible, .radial-card[data-active] { z-index: 10; border-color: var(--blue); background: var(--paper); transform: translateX(calc(-50% + var(--card-x))) translateY(-8px) rotate(0deg) !important; }
 .radial-card-index { position: absolute; top: 1.25rem; right: 1.25rem; color: var(--graphite); font-size: .7rem; }
 .status-badge { display: inline-flex; width: fit-content; border: 1px solid var(--line); border-radius: 999px; padding: .3rem .55rem; color: var(--graphite); font-size: .6rem; text-transform: uppercase; letter-spacing: .12em; }
+.status-badge[data-tone="danger"] { border-color: var(--crimson); color: var(--crimson); }
 footer { background: var(--paper) !important; }
 
 @keyframes ambient-drift { from { transform: translate3d(-2%, -1%, 0) scale(1); } to { transform: translate3d(3%, 2%, 0) scale(1.05); } }

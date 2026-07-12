@@ -2,6 +2,7 @@
 
 import type { FeedEvent, FeedPage } from "@/lib/feed-types";
 import { SegmentedStat } from "@/components/segmented-stat";
+import { StatusBadge } from "@/components/status-badge";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -34,7 +35,9 @@ function EventCard({ event, index }: { event: FeedEvent; index: number }) {
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-2 text-sm">
           {event.agent ? <Link className="font-extrabold underline-offset-4 hover:underline" href={`/agents/${event.agent.id}`} prefetch={false}>{event.agent.name}</Link> : <span className="font-extrabold">On the record</span>}
+          {event.agent?.status === "bankrupt" ? <StatusBadge status="Bankrupt" /> : null}
           {event.company ? <><span style={{ color: "var(--line)" }}>/</span><Link className="body-muted ink-link" href={`/companies/${event.company.id}`} prefetch={false}>{event.company.name}</Link></> : null}
+          {event.company?.status === "closed" ? <StatusBadge status="Closed" /> : null}
           <time className="financial w-full text-[10px] sm:ml-auto sm:w-auto" style={{ color: "var(--graphite)" }}>{eventTime(event.createdAt)}</time>
         </div>
         <p className="mt-4 max-w-4xl text-lg font-semibold leading-7 tracking-[-0.015em] sm:text-xl">{event.message}</p>

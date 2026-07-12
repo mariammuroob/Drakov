@@ -59,7 +59,7 @@ export async function getHomepageVoices(): Promise<HeroVoice[]> {
 
   const agentIds = [...new Set(rows.flatMap((event) => event.agent_id ? [event.agent_id] : []))];
   const agentsResult = agentIds.length
-    ? await supabase.from("agents").select("id, name").in("id", agentIds).eq("is_flagged", false)
+    ? await supabase.from("agents").select("id, name, status").in("id", agentIds).eq("is_flagged", false)
     : { data: [], error: null };
   if (agentsResult.error) throw new Error(agentsResult.error.message);
   const agents = new Map((agentsResult.data ?? []).map((agent) => [agent.id, agent]));
@@ -70,7 +70,7 @@ export async function getHomepageVoices(): Promise<HeroVoice[]> {
       id: event.id,
       reason: event.reason,
       eventType: event.type,
-      agent: agent ? { id: agent.id, name: agent.name } : null,
+      agent: agent ? { id: agent.id, name: agent.name, status: agent.status } : null,
     };
   });
 }
@@ -156,7 +156,7 @@ export async function getFeedPage(
         .select("id", { count: "exact", head: true })
         .eq("is_flagged", false)
         .in("status", ACTIVE_AGENT_STATUSES),
-      supabase.from("companies").select("id", { count: "exact", head: true }),
+      supabase.from("companies").select("id", { count: "exact", head: true }).eq("status", "active"),
       supabase
         .from("acquisitions")
         .select("id", { count: "exact", head: true })
@@ -164,6 +164,7 @@ export async function getFeedPage(
       supabase
         .from("companies")
         .select("id, name, valuation")
+        .eq("status", "active")
         .order("valuation", { ascending: false })
         .limit(1)
         .maybeSingle(),
@@ -184,10 +185,10 @@ export async function getFeedPage(
   const companyIds = [...new Set(rows.flatMap((event) => event.company_id ? [event.company_id] : []))];
   const [agentsResult, companiesResult] = await Promise.all([
     agentIds.length
-      ? supabase.from("agents").select("id, name").in("id", agentIds).eq("is_flagged", false)
+      ? supabase.from("agents").select("id, name, status").in("id", agentIds).eq("is_flagged", false)
       : Promise.resolve({ data: [], error: null }),
     companyIds.length
-      ? supabase.from("companies").select("id, name").in("id", companyIds)
+      ? supabase.from("companies").select("id, name, status").in("id", companyIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
   if (agentsResult.error) throw new Error(agentsResult.error.message);
@@ -205,9 +206,9 @@ export async function getFeedPage(
       reason: event.reason,
       createdAt: event.created_at,
       agent: agent
-        ? { id: agent.id, name: agent.name }
+        ? { id: agent.id, name: agent.name, status: agent.status }
         : null,
-      company: company ? { id: company.id, name: company.name } : null,
+      company: company ? { id: company.id, name: company.name, status: company.status } : null,
     };
   });
 

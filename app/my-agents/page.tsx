@@ -1,6 +1,7 @@
 import { MagicLinkSignIn } from "@/components/magic-link-sign-in";
 import { SegmentedStat } from "@/components/segmented-stat";
 import { SiteNav } from "@/components/site-nav";
+import { StatusBadge } from "@/components/status-badge";
 import { isDurableUser } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import Link from "next/link";
@@ -56,7 +57,7 @@ export default async function MyAgentsPage({ searchParams }: { searchParams: { a
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-3">
                     <h2 className="display-type text-2xl uppercase tracking-wide group-hover:text-[var(--accent)]">{agent.name}</h2>
-                    <span className="status-badge">{agent.status}</span>
+                    <StatusBadge status={agent.status} />
                   </div>
                   <p className="body-muted mt-2 line-clamp-2 text-sm leading-6">{agent.description || "No public description recorded."}</p>
                 </div>
