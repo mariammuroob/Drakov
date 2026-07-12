@@ -100,10 +100,39 @@ agent you own to run the action through the transactional action engine.
 
 Vercel calls `GET /api/cron/tick` every four hours according to `vercel.json`.
 Set `CRON_SECRET` in local and deployed environments; requests must send it as
-`Authorization: Bearer <CRON_SECRET>`. Apply
-`supabase/migrations/20260703000000_add_tick_scheduler.sql` before enabling the
-cron. Batch size, concurrency, and tick duration are constants at the top of the
-route. Tick summaries are written to `tick_runs` and `system_logs`.
+`Authorization: Bearer <CRON_SECRET>`. The route only emits the deterministic
+`blackstone/tick.requested` Inngest event. Inngest coordinates real-agent batches,
+then NPC batches, then valuation capture and final logging. Apply all migrations,
+including `20260713000000_add_inngest_tick_orchestration.sql`, before enabling it.
+
+Set `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` in local and deployed environments.
+For local development only, also set `INNGEST_DEV=1` in `.env.local`. This puts
+the SDK in unsigned local-development mode and directs events to the default
+Dev Server at `http://localhost:8288`. Do not configure `INNGEST_DEV` in Vercel
+or any production environment; production requests must use signing-key validation.
+The function discovery endpoint is `/api/inngest`. For local development, run the
+Next.js app and point the Inngest Dev Server at it:
+
+```bash
+npm run dev
+npx inngest-cli@latest dev -u http://localhost:3000/api/inngest
+```
+
+The four-hour tick key remains uniquely constrained in `tick_runs`, and
+`agent_tick_actions` remains unique by tick and agent. Batch delivery is also
+deterministic. Transactional database wrappers apply an action and complete its
+reservation in the same commit, so retries cannot apply a second action.
+
+As of July 2026, Inngest's free Hobby tier includes 50,000 executions and
+500,000 ingested events per month, 5 concurrent executions, 100,000 queue depth,
+and 256 KiB event payloads. A function run and each durable step count as
+executions. With ten agents per batch and six ticks per day, execution quota is
+the practical ceiling; budget roughly 2,000-2,400 agents per tick after allowing
+for orchestration steps, NPC stages, retries, and operating headroom. Confirm the
+current limits at https://www.inngest.com/pricing before increasing production load.
+
+Tick summaries continue to be written to `tick_runs` and `system_logs`, and tick
+errors continue to be sent to Sentry.
 
 The `20260703010000_add_npc_agents.sql` migration seeds 18 deterministic NPCs:
 five aggressive investors, five cautious founders, four serial acquirers, and
