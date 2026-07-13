@@ -1,6 +1,16 @@
 import "server-only";
 
-import type { FeedEvent, FeedPage, FeaturedRivalry, HeroVoice } from "@/lib/feed-types";
+import type {
+  AgentCloseSummary,
+  CashMovementSummary,
+  CompanyCloseSummary,
+  DailyMarketClose,
+  FeedEvent,
+  FeedPage,
+  FeaturedRivalry,
+  HeroVoice,
+  RivalrySummary,
+} from "@/lib/feed-types";
 import { createClient } from "@supabase/supabase-js";
 
 export const FEED_PAGE_SIZE = 20;
@@ -22,6 +32,104 @@ function startOfUtcWeek() {
   date.setUTCDate(date.getUTCDate() - distanceToMonday);
   date.setUTCHours(0, 0, 0, 0);
   return date.toISOString();
+}
+
+function numeric(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function text(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function cashMovement(value: unknown): CashMovementSummary | null {
+  if (!value || typeof value !== "object") return null;
+  const data = value as Record<string, unknown>;
+  const entityType = data.entityType === "agent" || data.entityType === "company" ? data.entityType : null;
+  if (!entityType) return null;
+  return {
+    entityType,
+    entityId: text(data.entityId),
+    entityName: text(data.entityName),
+    amount: numeric(data.amount),
+    reason: text(data.reason),
+    eventType: text(data.eventType),
+    createdAt: text(data.createdAt),
+  };
+}
+
+function rivalrySummary(value: unknown): RivalrySummary | null {
+  if (!value || typeof value !== "object") return null;
+  const data = value as Record<string, unknown>;
+  return {
+    id: text(data.id),
+    agentAId: text(data.agentAId),
+    agentAName: text(data.agentAName),
+    agentBId: text(data.agentBId),
+    agentBName: text(data.agentBName),
+    relationshipType: text(data.relationshipType),
+    intensity: numeric(data.intensity),
+    createdAt: text(data.createdAt),
+    updatedAt: text(data.updatedAt),
+  };
+}
+
+function agentClose(value: unknown): AgentCloseSummary | null {
+  if (!value || typeof value !== "object") return null;
+  const data = value as Record<string, unknown>;
+  return {
+    id: text(data.id),
+    name: text(data.name),
+    cash: numeric(data.cash),
+    status: text(data.status),
+  };
+}
+
+function companyClose(value: unknown): CompanyCloseSummary | null {
+  if (!value || typeof value !== "object") return null;
+  const data = value as Record<string, unknown>;
+  return {
+    id: text(data.id),
+    name: text(data.name),
+    market: text(data.market),
+    status: text(data.status),
+    interactionCount: numeric(data.interactionCount),
+  };
+}
+
+function parseMarketClose(row: Record<string, unknown> | null | undefined): DailyMarketClose | null {
+  if (!row) return null;
+  return {
+    marketDate: text(row.market_date),
+    generatedAt: text(row.generated_at ?? row.created_at),
+    activeAgents: numeric(row.active_agents),
+    bankruptAgents: numeric(row.bankrupt_agents),
+    activeCompanies: numeric(row.active_companies),
+    closedCompanies: numeric(row.closed_companies),
+    totalAgentCash: numeric(row.total_agent_cash),
+    totalCompanyValuation: numeric(row.total_company_valuation),
+    bankruptcies: numeric(row.bankruptcies),
+    companyClosures: numeric(row.company_closures),
+    biggestCashGain: cashMovement(row.biggest_cash_gain),
+    biggestCashLoss: cashMovement(row.biggest_cash_loss),
+    newestRivalry: rivalrySummary(row.newest_rivalry),
+    highestIntensityRivalry: rivalrySummary(row.highest_intensity_rivalry),
+    closestToBankruptcyAgent: agentClose(row.closest_to_bankruptcy_agent),
+    mostInteractedCompany: companyClose(row.most_interacted_company),
+  };
+}
+
+export async function getLatestMarketClose(): Promise<DailyMarketClose | null> {
+  const supabase = client();
+  const result = await supabase
+    .from("daily_market_closes")
+    .select("market_date, generated_at, created_at, active_agents, bankrupt_agents, active_companies, closed_companies, total_agent_cash, total_company_valuation, bankruptcies, company_closures, biggest_cash_gain, biggest_cash_loss, newest_rivalry, highest_intensity_rivalry, closest_to_bankruptcy_agent, most_interacted_company")
+    .order("market_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (result.error) throw new Error(result.error.message);
+  return parseMarketClose(result.data as Record<string, unknown> | null);
 }
 
 export async function getHomepageVoices(): Promise<HeroVoice[]> {
@@ -80,8 +188,8 @@ export async function getFeaturedRivalry(): Promise<FeaturedRivalry | null> {
   const rivalryResult = await supabase
     .from("rivalries")
     .select("id, agent_a_id, agent_b_id, relationship_type, intensity, updated_at")
-    .order("updated_at", { ascending: false })
     .order("intensity", { ascending: false })
+    .order("updated_at", { ascending: false })
     .limit(5);
   if (rivalryResult.error) throw new Error(rivalryResult.error.message);
 
@@ -149,7 +257,7 @@ export async function getFeedPage(
     );
   }
 
-  const [agentsCount, companiesCount, acquisitionsCount, largestCompany, eventsResult] =
+  const [agentsCount, companiesCount, acquisitionsCount, largestCompany, eventsResult, marketClose] =
     await Promise.all([
       supabase
         .from("agents")
@@ -169,6 +277,7 @@ export async function getFeedPage(
         .limit(1)
         .maybeSingle(),
       eventsQuery,
+      getLatestMarketClose(),
     ]);
 
   const queryError = [
@@ -223,6 +332,7 @@ export async function getFeedPage(
         : null,
     },
     events,
+    marketClose,
     hasMore: (eventsResult.data?.length ?? 0) > FEED_PAGE_SIZE,
     nextCursor: events.at(-1)?.createdAt ?? null,
   };

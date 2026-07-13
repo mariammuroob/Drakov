@@ -1,6 +1,6 @@
 "use client";
 
-import type { FeedEvent, FeedPage } from "@/lib/feed-types";
+import type { DailyMarketClose, FeedEvent, FeedPage } from "@/lib/feed-types";
 import { SegmentedStat } from "@/components/segmented-stat";
 import { StatusBadge } from "@/components/status-badge";
 import Link from "next/link";
@@ -23,6 +23,43 @@ function eventTime(value: string) {
     month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
     timeZone: "UTC", timeZoneName: "short",
   }).format(new Date(value));
+}
+
+function marketDate(value: string) {
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00.000Z`));
+}
+
+function MarketCloseDispatch({ close }: { close: DailyMarketClose }) {
+  const rivalry = close.highestIntensityRivalry;
+  const brink = close.closestToBankruptcyAgent;
+  const gain = close.biggestCashGain;
+  const loss = close.biggestCashLoss;
+
+  return (
+    <article className="market-close-feed-card paper-card mb-4 p-5 sm:p-6">
+      <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: "var(--amber)" }}>
+        <span>Daily Market Close</span>
+        <span>/</span>
+        <span>{marketDate(close.marketDate)}</span>
+      </div>
+      <h3 className="display-type mt-4 text-3xl uppercase leading-none">The close is in.</h3>
+      <div className="mt-5 grid gap-4 text-sm leading-6 sm:grid-cols-2">
+        <p><span className="body-muted">Bankruptcies:</span> <strong>{close.bankruptcies}</strong></p>
+        <p><span className="body-muted">Closest to zero:</span> <strong>{brink ? `${brink.name} at $${Math.round(brink.cash).toLocaleString("en-US")}` : "No active agents"}</strong></p>
+        <p><span className="body-muted">Biggest gain:</span> <strong>{gain ? `${gain.entityName} +$${Math.round(gain.amount).toLocaleString("en-US")}` : "None recorded"}</strong></p>
+        <p><span className="body-muted">Biggest loss:</span> <strong>{loss ? `${loss.entityName} -$${Math.round(Math.abs(loss.amount)).toLocaleString("en-US")}` : "None recorded"}</strong></p>
+      </div>
+      {rivalry ? (
+        <p className="mt-4 text-sm leading-6">
+          <span className="body-muted">Most intense rivalry:</span>{" "}
+          <Link className="ink-link" href={`/feed?agent_a=${encodeURIComponent(rivalry.agentAId)}&agent_b=${encodeURIComponent(rivalry.agentBId)}`}>
+            {rivalry.agentAName} vs. {rivalry.agentBName}
+          </Link>{" "}
+          <span className="text-[var(--crimson)]">/ intensity {rivalry.intensity}</span>
+        </p>
+      ) : null}
+    </article>
+  );
 }
 
 function EventCard({ event, index }: { event: FeedEvent; index: number }) {
@@ -62,6 +99,7 @@ export function NewsFeed({
 }) {
   const [stats, setStats] = useState(initialPage.stats);
   const [events, setEvents] = useState(initialPage.events);
+  const [marketClose, setMarketClose] = useState(initialPage.marketClose);
   const [hasMore, setHasMore] = useState(initialPage.hasMore);
   const [nextCursor, setNextCursor] = useState(initialPage.nextCursor);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -74,6 +112,7 @@ export function NewsFeed({
         if (!response.ok) throw new Error("Refresh failed");
         const fresh = (await response.json()) as FeedPage;
         setStats(fresh.stats);
+        setMarketClose(fresh.marketClose);
         setEvents((current) => {
           if (current.length <= 20) {
             setHasMore(fresh.hasMore);
@@ -120,6 +159,7 @@ export function NewsFeed({
 
   const feedList = (
     <div>
+      {!compact && marketClose ? <MarketCloseDispatch close={marketClose} /> : null}
       {events.length ? events.map((event, index) => <EventCard event={event} index={index} key={event.id} />) : (
         <div className="border-y editorial-rule py-14 text-center">
           <p className="display-type text-2xl sm:text-3xl">Nothing on the record yet.</p>
