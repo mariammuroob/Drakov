@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server";
-import { applyRateLimitHeaders, checkRateLimit, enforceRateLimit, getRequestIp, hashIdentifier } from "@/lib/rate-limit";
+import { applyRateLimitHeaders, checkRateLimit, enforceRateLimit, getRequestIp, hashIdentifier, isRateLimitUnavailable, rateLimitUnavailableResponse } from "@/lib/rate-limit";
 import { magicLinkRequestSchema, zodErrorMessage } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { csrfError } from "@/lib/request-security";
@@ -8,22 +8,54 @@ function safeNext(value: unknown) {
   return value === "/my-agents" ? "/my-agents" : "/launch";
 }
 
-function serializeAuthError(error: unknown) {
+const GENERIC_EMAIL_ERROR = "We couldn't send the sign-in email. Please try again shortly.";
+
+function redactSensitiveText(value: string) {
+  return value
+    .replace(/(api[_-]?key|password|passwd|token|secret|authorization|smtp[_-]?pass)(["'\s:=]+)[^"',\s}]+/gi, "$1$2[redacted]")
+    .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [redacted]");
+}
+
+function safeString(value: unknown) {
+  if (typeof value !== "string") return value;
+  return redactSensitiveText(value).slice(0, 1000);
+}
+
+function authErrorLogPayload(error: unknown) {
   if (error === null || (typeof error !== "object" && typeof error !== "function")) {
-    return JSON.stringify({ value: String(error) });
+    return { value: safeString(String(error)) };
   }
 
-  try {
-    return JSON.stringify(error, Object.getOwnPropertyNames(error));
-  } catch (serializationError) {
-    return JSON.stringify({
-      serializationError:
-        serializationError instanceof Error
-          ? serializationError.message
-          : String(serializationError),
-      errorType: Object.prototype.toString.call(error),
-    });
+  const record = error as Record<string, unknown>;
+  const cause = record.cause && typeof record.cause === "object"
+    ? record.cause as Record<string, unknown>
+    : null;
+
+  return {
+    type: Object.prototype.toString.call(error),
+    name: safeString(record.name),
+    message: safeString(record.message),
+    status: typeof record.status === "number" ? record.status : undefined,
+    code: safeString(record.code),
+    error: safeString(record.error),
+    error_description: safeString(record.error_description),
+    details: safeString(record.details),
+    hint: safeString(record.hint),
+    cause: cause
+      ? {
+          name: safeString(cause.name),
+          message: safeString(cause.message),
+          code: safeString(cause.code),
+        }
+      : undefined,
+  };
+}
+
+function authErrorResponse(error: unknown, fallbackStatus: number) {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: GENERIC_EMAIL_ERROR }, { status: fallbackStatus });
   }
+  return NextResponse.json({ error: authErrorMessage(error) }, { status: fallbackStatus });
 }
 
 function authErrorMessage(error: unknown) {
@@ -58,7 +90,7 @@ export async function POST(request: Request) {
   const ip = getRequestIp(request);
   const publicRouteLimit = await enforceRateLimit(
     `ip:${ip}`,
-    { prefix: "api:auth:magic-link:ip", limit: 20, window: "1 h", mode: "sliding" },
+    { prefix: "api:auth:magic-link:ip", limit: 20, window: "1 h", mode: "sliding", failClosed: true },
     "Too many magic-link requests from this IP. Please try again later.",
   );
   if (publicRouteLimit) return publicRouteLimit;
@@ -78,9 +110,11 @@ export async function POST(request: Request) {
 
   const emailLimit = await checkRateLimit(`email:${hashIdentifier(email)}`, {
     prefix: "api:auth:magic-link:email",
+    failClosed: true,
     limit: 5,
     window: "1 h",
   });
+  if (isRateLimitUnavailable(emailLimit)) return rateLimitUnavailableResponse();
   if (!emailLimit.success) {
     return applyRateLimitHeaders(
       NextResponse.json({ error: "Too many magic-link requests for this email. Please try again later." }, { status: 429 }),
@@ -103,15 +137,12 @@ export async function POST(request: Request) {
       },
     });
     if (error) {
-      console.error("Supabase signInWithOtp returned an error:", serializeAuthError(error));
-      return NextResponse.json(
-        { error: authErrorMessage(error) },
-        { status: typeof error.status === "number" ? error.status : 400 },
-      );
+      console.error("Supabase signInWithOtp returned an error:", authErrorLogPayload(error));
+      return authErrorResponse(error, typeof error.status === "number" ? error.status : 400);
     }
     return applyRateLimitHeaders(NextResponse.json({ ok: true }), emailLimit);
   } catch (caught) {
-    console.error("Supabase signInWithOtp threw an error:", serializeAuthError(caught));
-    return NextResponse.json({ error: authErrorMessage(caught) }, { status: 500 });
+    console.error("Supabase signInWithOtp threw an error:", authErrorLogPayload(caught));
+    return authErrorResponse(caught, 500);
   }
 }

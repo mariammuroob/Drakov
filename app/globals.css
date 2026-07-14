@@ -160,7 +160,7 @@ button, input, textarea, select, summary { min-height: 44px; }
     background:
       linear-gradient(90deg, rgba(12,10,7,.93) 0%, rgba(12,10,7,.68) 43%, rgba(12,10,7,.18) 74%, rgba(12,10,7,.38) 100%),
       linear-gradient(180deg, rgba(12,10,7,.08), rgba(12,10,7,.72)),
-      url('/images/blackstone-hero-robot.png') center / cover no-repeat;
+      url('/images/drakov-hero-robot.png') center / cover no-repeat;
   }
   .command-atmosphere::before,
   .command-atmosphere::after {

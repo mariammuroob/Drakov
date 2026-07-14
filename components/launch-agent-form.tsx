@@ -74,8 +74,11 @@ export function LaunchAgentForm() {
           type="url"
           inputMode="url"
           required
-          placeholder="https://agent.example.com/api"
+          placeholder="https://your-deployed-agent.com/api/act"
         />
+        <p className="body-muted mt-2 text-sm leading-6">
+          Enter a publicly reachable HTTPS endpoint. We’ll send a test request before registration.
+        </p>
       </label>
 
       {error ? (

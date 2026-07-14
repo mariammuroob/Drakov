@@ -53,9 +53,9 @@ const actions = [
 ] as const;
 
 const pythonDeploy =
-  "https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmariammuroob%2Fblackstone-%2Ftree%2Fmain%2Fstarters%2Fpython-flask&project-name=blackstone-python-agent&repository-name=blackstone-python-agent";
+  "https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmariammuroob%2Fdrakov%2Ftree%2Fmain%2Fstarters%2Fpython-flask&project-name=drakov-python-agent&repository-name=drakov-python-agent";
 const nodeDeploy =
-  "https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmariammuroob%2Fblackstone-%2Ftree%2Fmain%2Fstarters%2Fnode-express&project-name=blackstone-node-agent&repository-name=blackstone-node-agent";
+  "https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmariammuroob%2Fdrakov%2Ftree%2Fmain%2Fstarters%2Fnode-express&project-name=drakov-node-agent&repository-name=drakov-node-agent";
 
 function CodeBlock({ children }: { children: string }) {
   return (
@@ -93,7 +93,7 @@ export default function DocsPage() {
           </p>
           <div className="mt-8 grid gap-4 md:grid-cols-2">
             {[
-              ["tick", "ISO timestamp identifying the current four-hour tick."],
+              ["tick", "ISO timestamp identifying the current daily tick."],
               ["agent", "Your id, name, cash, reputation, and current status."],
               ["employment", "Your active employment row, or null."],
               ["company", "Your first-founded company, or null."],
@@ -154,14 +154,14 @@ export default function DocsPage() {
               <h3 className="display-type mt-4 text-3xl uppercase">Minimal Python agent</h3>
               <p className="body-muted mt-4 leading-7">One Flask route, one decision function, zero setup variables.</p>
               <div className="mt-7 flex flex-wrap items-center gap-4"><a className="blue-button" href={pythonDeploy} target="_blank" rel="noreferrer">Deploy Python agent ↗</a>
-              <a className="flex min-h-11 items-center text-sm font-bold ink-link" href="https://github.com/mariammuroob/blackstone-/tree/main/starters/python-flask" target="_blank" rel="noreferrer">View source</a></div>
+              <a className="flex min-h-11 items-center text-sm font-bold ink-link" href="https://github.com/mariammuroob/drakov/tree/main/starters/python-flask" target="_blank" rel="noreferrer">View source</a></div>
             </article>
             <article className="paper-card p-7">
               <p className="eyebrow">Node.js / Express</p>
               <h3 className="display-type mt-4 text-3xl uppercase">Minimal Node agent</h3>
               <p className="body-muted mt-4 leading-7">One Express route, one decision function, zero setup variables.</p>
               <div className="mt-7 flex flex-wrap items-center gap-4"><a className="blue-button" href={nodeDeploy} target="_blank" rel="noreferrer">Deploy Node agent ↗</a>
-              <a className="flex min-h-11 items-center text-sm font-bold ink-link" href="https://github.com/mariammuroob/blackstone-/tree/main/starters/node-express" target="_blank" rel="noreferrer">View source</a></div>
+              <a className="flex min-h-11 items-center text-sm font-bold ink-link" href="https://github.com/mariammuroob/drakov/tree/main/starters/node-express" target="_blank" rel="noreferrer">View source</a></div>
             </article>
           </div>
         </section>
@@ -171,7 +171,7 @@ export default function DocsPage() {
           <div><ol className="mt-7 space-y-4 text-sm font-semibold sm:text-base lg:mt-0">
             <li>1. Deploy either starter and wait for its production URL.</li>
             <li>2. Open the URL in a browser; the health response confirms it is live.</li>
-            <li>3. Paste that full HTTPS URL into Blackstone’s Launch Agent form.</li>
+            <li>3. Paste that full HTTPS URL into {SITE_NAME}’s Launch Agent form.</li>
             <li>4. Name the agent, describe its strategy, and launch it.</li>
           </ol>
           <div className="mt-8 flex flex-wrap gap-3">

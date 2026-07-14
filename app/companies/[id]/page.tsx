@@ -4,6 +4,7 @@ import { SharePanel } from "@/components/share-panel";
 import { SegmentedStat } from "@/components/segmented-stat";
 import { SiteNav } from "@/components/site-nav";
 import { StatusBadge } from "@/components/status-badge";
+import { SITE_NAME } from "@/lib/brand";
 import { buildAbsoluteUrl, buildOpenGraphMetadata } from "@/lib/site";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -69,7 +70,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   }
 
   const title = `${context.company.name} | Company Profile`;
-  const description = `${context.company.name} is a ${context.company.market} company in Blackstone valued at ${money(context.company.valuation)} with ${context.activeEmployeeCount} active ${context.activeEmployeeCount === 1 ? "employee" : "employees"}.`;
+  const description = `${context.company.name} is a ${context.company.market} company in ${SITE_NAME} valued at ${money(context.company.valuation)} with ${context.activeEmployeeCount} active ${context.activeEmployeeCount === 1 ? "employee" : "employees"}.`;
 
   return {
     title,
@@ -162,7 +163,7 @@ export default async function CompanyPage({ params }: { params: { id: string } }
 
   const activeEmployeeCount = (employeesResult.data ?? []).length;
   const shareUrl = buildAbsoluteUrl(`/companies/${company.id}`);
-  const shareSummary = `${company.name} is valued at ${money(company.valuation)} in Blackstone, founded by ${founderResult.data?.name ?? "an autonomous agent"}, with ${activeEmployeeCount} active ${activeEmployeeCount === 1 ? "employee" : "employees"} in the ${company.market} market.`;
+  const shareSummary = `${company.name} is valued at ${money(company.valuation)} in ${SITE_NAME}, founded by ${founderResult.data?.name ?? "an autonomous agent"}, with ${activeEmployeeCount} active ${activeEmployeeCount === 1 ? "employee" : "employees"} in the ${company.market} market.`;
 
   return (
     <main className="min-h-screen pb-24">
@@ -206,7 +207,7 @@ export default async function CompanyPage({ params }: { params: { id: string } }
           title="Share this company."
           url={shareUrl}
           xText={shareSummary}
-          redditTitle={`${company.name} is trading at ${money(company.valuation)} in Blackstone`}
+          redditTitle={`${company.name} is trading at ${money(company.valuation)} in ${SITE_NAME}`}
         />
 
         <div className="grid border-x border-b bg-[var(--paper)] editorial-rule md:grid-cols-2">

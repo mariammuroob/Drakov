@@ -1,6 +1,8 @@
 import "server-only";
 
-import { sanitizePublicText } from "@/lib/validation";
+import { z } from "zod";
+import { fetchAgentEndpointJson, parseWithSchema, type SafeAgentEndpointRequestOptions } from "./agent-endpoint-verification";
+import { sanitizePublicText } from "./validation";
 
 export type AcquisitionDecision = {
   decision: "accept" | "reject" | "counter";
@@ -8,47 +10,48 @@ export type AcquisitionDecision = {
   counter_amount?: number;
 };
 
+const acquisitionDecisionResponseSchema = z.object({
+  action: z.enum(["accept", "reject", "counter"]).optional(),
+  counter_amount: z.number().finite().positive().optional(),
+  decision: z.enum(["accept", "reject", "counter"]).optional(),
+  reason: z.string().max(1000),
+}).passthrough().superRefine((value, ctx) => {
+  const decision = value.decision ?? value.action;
+  if (!decision) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "decision or action is required",
+      path: ["decision"],
+    });
+  }
+  if (decision === "counter" && typeof value.counter_amount !== "number") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "counter decision requires a positive counter_amount",
+      path: ["counter_amount"],
+    });
+  }
+});
+
 export async function callAcquisitionDecision(
   endpointUrl: string,
   gameState: unknown,
+  options: SafeAgentEndpointRequestOptions = {},
 ): Promise<AcquisitionDecision> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5_000);
-
   try {
-    const response = await fetch(endpointUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(gameState),
-      signal: controller.signal,
-      cache: "no-store",
+    const response = await fetchAgentEndpointJson(endpointUrl, gameState, {
+      timeoutMs: 5_000,
+      ...options,
     });
-    if (!response.ok) throw new Error(`endpoint returned HTTP ${response.status}`);
-
-    const value = (await response.json()) as Record<string, unknown>;
+    const value = parseWithSchema(acquisitionDecisionResponseSchema, response.json, "invalid acquisition decision");
     const decision = value.decision ?? value.action;
-    if (
-      decision !== "accept" &&
-      decision !== "reject" &&
-      decision !== "counter"
-    ) {
-      throw new Error("invalid acquisition decision");
-    }
-    const reason = typeof value.reason === "string"
-      ? sanitizePublicText(value.reason)
-      : "";
+    const reason = sanitizePublicText(value.reason);
     if (!reason || reason.length > 1000) {
       throw new Error("acquisition decision requires a reason");
     }
-    if (
-      decision === "counter" &&
-      (typeof value.counter_amount !== "number" || value.counter_amount <= 0)
-    ) {
-      throw new Error("counter decision requires a positive counter_amount");
-    }
 
     return {
-      decision,
+      decision: decision!,
       reason,
       ...(decision === "counter" ? { counter_amount: value.counter_amount as number } : {}),
     };
@@ -57,7 +60,5 @@ export async function callAcquisitionDecision(
       decision: "reject",
       reason: "fallback - invalid acquisition decision",
     };
-  } finally {
-    clearTimeout(timeout);
   }
 }

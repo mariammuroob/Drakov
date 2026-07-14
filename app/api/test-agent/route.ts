@@ -4,10 +4,17 @@ import { NextResponse } from "next/server";
 import { isModerationAdmin } from "@/lib/moderation-admin";
 import { testAgentRequestSchema, zodErrorMessage } from "@/lib/validation";
 import { csrfError } from "@/lib/request-security";
+import { enforceRateLimit, getRequestIp } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   const csrf = csrfError(request, { requireAjax: true });
   if (csrf) return NextResponse.json({ error: csrf }, { status: 403 });
+  const endpointCallLimit = await enforceRateLimit(
+    `ip:${getRequestIp(request)}`,
+    { prefix: "api:test-agent:endpoint-call:ip", limit: 30, window: "1 h", mode: "sliding", failClosed: true },
+    "Too many test-agent endpoint calls from this IP. Please try again later.",
+  );
+  if (endpointCallLimit) return endpointCallLimit;
   if (!isModerationAdmin()) {
     return NextResponse.json({ error: "Admin authentication is required." }, { status: 401 });
   }

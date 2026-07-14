@@ -10,6 +10,7 @@ type WindowUnit = `${number} s` | `${number} m` | `${number} h` | `${number} d`;
 type LimitMode = "fixed" | "sliding";
 
 type LimiterConfig = {
+  failClosed?: boolean;
   limit: number;
   mode?: LimitMode;
   prefix: string;
@@ -23,8 +24,19 @@ type LimitResult = {
   success: boolean;
 };
 
+type RateLimitUnavailableResult = LimitResult & {
+  unavailable: true;
+};
+
+type RateLimitCheckResult = LimitResult | { success: true } | RateLimitUnavailableResult;
+
+type LimiterLike = {
+  limit(identifier: string): Promise<LimitResult>;
+};
+
 let redisClient: Redis | null | undefined;
 const limiterCache = new Map<string, Ratelimit>();
+let limiterOverrideForTests: LimiterLike | null | undefined;
 
 function getRedisClient() {
   if (redisClient !== undefined) return redisClient;
@@ -40,7 +52,9 @@ function getRedisClient() {
   return redisClient;
 }
 
-function getLimiter(config: LimiterConfig) {
+function getLimiter(config: LimiterConfig): LimiterLike | null {
+  if (limiterOverrideForTests !== undefined) return limiterOverrideForTests;
+
   const key = `${config.prefix}:${config.mode ?? "fixed"}:${config.limit}:${config.window}`;
   const existing = limiterCache.get(key);
   if (existing) return existing;
@@ -76,6 +90,37 @@ function failOpenResult() {
   return { success: true } as const;
 }
 
+function unavailableResult(): RateLimitUnavailableResult {
+  return {
+    limit: 0,
+    remaining: 0,
+    reset: Date.now() + 60_000,
+    success: false,
+    unavailable: true,
+  };
+}
+
+function shouldFailClosed(config: LimiterConfig) {
+  return config.failClosed === true && process.env.NODE_ENV === "production";
+}
+
+function logRateLimitInfrastructureFailure(config: LimiterConfig, reason: "missing_config" | "upstash_error") {
+  const message = reason === "missing_config"
+    ? "Rate limit unavailable: Upstash environment is not configured."
+    : "Rate limit unavailable: Upstash request failed.";
+  const level = shouldFailClosed(config) ? "error" : "warn";
+  console[level](message, {
+    prefix: config.prefix,
+    mode: config.mode ?? "fixed",
+    failClosed: config.failClosed === true,
+    production: process.env.NODE_ENV === "production",
+  });
+}
+
+export function isRateLimitUnavailable(result: RateLimitCheckResult): result is RateLimitUnavailableResult {
+  return "unavailable" in result && result.unavailable === true;
+}
+
 export function getRequestIp(request: Request) {
   const forwardedFor = request.headers.get("x-forwarded-for");
   if (forwardedFor) {
@@ -88,19 +133,19 @@ export function hashIdentifier(value: string) {
   return createHash("sha256").update(value).digest("hex").slice(0, 24);
 }
 
-export async function checkRateLimit(identifier: string, config: LimiterConfig) {
+export async function checkRateLimit(identifier: string, config: LimiterConfig): Promise<RateLimitCheckResult> {
   const limiter = getLimiter(config);
   if (!limiter) {
-    if (process.env.NODE_ENV !== "production") {
-      console.warn(`Upstash rate limit bypassed for ${config.prefix}: missing UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN.`);
-    }
+    logRateLimitInfrastructureFailure(config, "missing_config");
+    if (shouldFailClosed(config)) return unavailableResult();
     return failOpenResult();
   }
 
   try {
     return await limiter.limit(identifier);
-  } catch (error) {
-    console.error(`Upstash rate limit failed for ${config.prefix}:`, error);
+  } catch {
+    logRateLimitInfrastructureFailure(config, "upstash_error");
+    if (shouldFailClosed(config)) return unavailableResult();
     return failOpenResult();
   }
 }
@@ -114,14 +159,32 @@ export async function enforceRateLimit(
   if (result.success) return null;
 
   return NextResponse.json(
-    { error: message },
-    { status: 429, headers: rateLimitHeaders(result) },
+    { error: isRateLimitUnavailable(result) ? "Rate limiting is temporarily unavailable. Please try again shortly." : message },
+    { status: isRateLimitUnavailable(result) ? 503 : 429, headers: rateLimitHeaders(result) },
   );
 }
 
-export function applyRateLimitHeaders(response: NextResponse, result: LimitResult | { success: true }) {
+export function rateLimitUnavailableResponse() {
+  return NextResponse.json(
+    { error: "Rate limiting is temporarily unavailable. Please try again shortly." },
+    { status: 503, headers: rateLimitHeaders(unavailableResult()) },
+  );
+}
+
+export function applyRateLimitHeaders(response: NextResponse, result: RateLimitCheckResult) {
   if (!("limit" in result)) return response;
   const headers = rateLimitHeaders(result);
   headers.forEach((value, key) => response.headers.set(key, value));
   return response;
+}
+
+export function __resetRateLimitForTests() {
+  redisClient = undefined;
+  limiterCache.clear();
+  limiterOverrideForTests = undefined;
+}
+
+export function __setLimiterForTests(limiter: LimiterLike | null | undefined) {
+  limiterOverrideForTests = limiter;
+  limiterCache.clear();
 }

@@ -1,4 +1,4 @@
-export const TICK_INTERVAL_HOURS = 4;
+export const TICK_INTERVAL_HOURS = 24;
 
 export function tickKey(now = new Date()) {
   const intervalMs = TICK_INTERVAL_HOURS * 60 * 60 * 1_000;
@@ -6,5 +6,5 @@ export function tickKey(now = new Date()) {
 }
 
 export function tickEventId(currentTickKey: string) {
-  return `blackstone-tick:${currentTickKey}`;
+  return `drakov-tick:${currentTickKey}`;
 }

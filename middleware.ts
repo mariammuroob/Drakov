@@ -2,7 +2,7 @@ import { configuredCorsOrigins } from "@/lib/request-security";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const ALLOWED_METHODS = "GET, POST, DELETE, OPTIONS";
+const ALLOWED_METHODS = "GET, POST, PATCH, OPTIONS";
 const ALLOWED_HEADERS = "Authorization, Content-Type, X-Requested-With";
 
 function applyCors(response: NextResponse, origin: string) {

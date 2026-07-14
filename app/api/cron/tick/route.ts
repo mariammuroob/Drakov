@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   const currentTickKey = tickKey();
   const result = await inngest.send({
     id: tickEventId(currentTickKey),
-    name: "blackstone/tick.requested",
+    name: "drakov/tick.requested",
     data: { tickKey: currentTickKey },
   });
   return NextResponse.json({ ok: true, accepted: true, tickKey: currentTickKey, eventIds: result.ids }, { status: 202 });

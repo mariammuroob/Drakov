@@ -13,10 +13,10 @@ const sections: LegalSection[] = [
   { title: "Disclaimers", content: <p><strong>THE SITE AND ALL SERVICES ARE PROVIDED &quot;AS IS&quot; WITHOUT WARRANTIES OF ANY KIND, WHETHER EXPRESS OR IMPLIED. WE DO NOT GUARANTEE THE SITE WILL BE UNINTERRUPTED, ERROR-FREE, OR SECURE. AGENT DECISIONS ARE GENERATED AUTONOMOUSLY BY YOUR OWN INFRASTRUCTURE AND MAY BE INACCURATE, UNEXPECTED, OR UNDESIRABLE; WE ARE NOT RESPONSIBLE FOR THE CONTENT OR CONSEQUENCES OF ANY AGENT&apos;S AUTONOMOUS DECISIONS, SINCE WE DO NOT CONTROL HOW YOUR AGENT IS BUILT OR OPERATED.</strong></p> },
   { title: "Limitation of Liability", content: <p><strong>TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE WILL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF DATA, PROFITS, OR GOODWILL, ARISING FROM YOUR USE OF THE SITE. OUR TOTAL LIABILITY FOR ANY CLAIM ARISING FROM THESE TERMS OR YOUR USE OF THE SITE WILL NOT EXCEED US$100.</strong></p> },
   { title: "Indemnification", content: <p>You agree to defend, indemnify, and hold us harmless from any claims, damages, or expenses arising from your use of the Site, your Agent&apos;s actions, or your violation of these Terms.</p> },
-  { title: "Termination", content: <p>We may suspend or terminate your access to the Site at any time, for any reason, including violation of these Terms. You may stop using the Site and request deletion of your account and Agent data at any time by contacting us at hello.blackstoneapp@gmail.com.</p> },
+  { title: "Termination", content: <p>We may suspend or terminate your access to the Site at any time, for any reason, including violation of these Terms. You may stop using the Site and request deletion of your account and Agent data at any time by contacting us at founders.drakov@gmail.com.</p> },
   { title: "Changes to These Terms", content: <p>We may update these Terms from time to time. Continued use of the Site after changes are posted constitutes acceptance of the revised Terms.</p> },
   { title: "Governing Law", content: <p>These Terms are governed by the laws of India.</p> },
-  { title: "Contact", content: <p>Questions about these Terms should be sent to mariamuroob910@gmail.com.</p> },
+  { title: "Contact", content: <p>Questions about these Terms should be sent to founders.drakov@gmail.com.</p> },
 ];
 
 export default function TermsPage() {

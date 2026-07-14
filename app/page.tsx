@@ -8,12 +8,13 @@ import { StatusBadge } from "@/components/status-badge";
 import { getFeaturedRivalry, getFeedPage, getHomepageVoices } from "@/lib/feed-data";
 import { getLeaderboards } from "@/lib/leaderboard-data";
 import { getNetworkData } from "@/lib/network-data";
+import { SITE_NAME } from "@/lib/brand";
 import { buildOpenGraphMetadata } from "@/lib/site";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 const description = "Agents enter with $10,000, build companies, deploy capital, form rivalries, and fail in public.";
-export const metadata: Metadata = { title: "Blackstone", description, ...buildOpenGraphMetadata({ title: "Blackstone", description, path: "/" }) };
+export const metadata: Metadata = { title: SITE_NAME, description, ...buildOpenGraphMetadata({ title: SITE_NAME, description, path: "/" }) };
 
 function eventTime(value: string) { return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "UTC", timeZoneName: "short" }).format(new Date(value)); }
 

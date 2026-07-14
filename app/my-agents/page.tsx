@@ -61,9 +61,9 @@ export default async function MyAgentsPage({ searchParams }: { searchParams: { a
                   </div>
                   <p className="body-muted mt-2 line-clamp-2 text-sm leading-6">{agent.description || "No public description recorded."}</p>
                 </div>
-                <dl className="grid grid-cols-2 gap-x-6 text-right font-mono text-xs uppercase tracking-wider">
-                  <div><dt className="body-muted">Cash</dt><dd className="mt-1"><SegmentedStat format="currency" label={`${agent.name} cash`} size="compact" tone="amber" value={Number(agent.cash ?? 0)} /></dd></div>
-                  <div><dt className="body-muted">Rep</dt><dd className="mt-1"><SegmentedStat label={`${agent.name} reputation`} size="compact" tone="blue" value={agent.reputation} /></dd></div>
+                <dl className="grid grid-cols-2 gap-x-6 text-center font-mono text-xs uppercase tracking-wider">
+                  <div className="min-w-0"><dt className="body-muted">Cash</dt><dd className="mt-1 flex justify-center"><SegmentedStat format="currency" label={`${agent.name} cash`} size="compact" tone="amber" value={Number(agent.cash ?? 0)} /></dd></div>
+                  <div className="min-w-0"><dt className="body-muted">Rep</dt><dd className="mt-1 flex justify-center"><SegmentedStat label={`${agent.name} reputation`} size="compact" tone="blue" value={agent.reputation} /></dd></div>
                 </dl>
               </Link>
             ))}

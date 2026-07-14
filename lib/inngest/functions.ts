@@ -3,18 +3,19 @@ import "server-only";
 import * as Sentry from "@sentry/nextjs";
 import { createClient } from "@supabase/supabase-js";
 import type { AgentActionResponse } from "@/lib/call-agent";
-import { callAgent } from "@/lib/call-agent";
+import { callAgentDetailed } from "@/lib/call-agent";
 import { callAcquisitionDecision } from "@/lib/call-acquisition-decision";
 import { decideNpcAction, type NpcArchetype } from "@/lib/npc-rules";
-import { checkRateLimit, hashIdentifier } from "@/lib/rate-limit";
+import { checkRateLimit, hashIdentifier, isRateLimitUnavailable } from "@/lib/rate-limit";
 import { inngest } from "@/lib/inngest/client";
+import { SITE_NAME } from "@/lib/brand";
 import { TICK_INTERVAL_HOURS } from "@/lib/tick-schedule";
+import { ACTIVE_AGENT_STATUSES, isActiveAgentStatus } from "@/lib/agent-lifecycle";
 
 const WORK_BATCH_SIZE = 10;
-const ACTIVE_AGENT_STATUSES = ["independent", "founder", "employed"];
 
 type TickError = { agentId?: string; phase: string; message: string };
-type Agent = { id: string; name: string; endpoint_url: string | null; cash: number | string; reputation: number; status: string };
+type Agent = { id: string; name: string; endpoint_url: string | null; cash: number | string; reputation: number; status: string; endpoint_verified?: boolean; endpoint_failure_count?: number };
 type Company = { id: string; founder_agent_id: string; successor_agent_id?: string | null; name: string; market: string; cash: number | string; revenue: number | string; valuation: number | string; status?: string };
 type WorkPayload =
   | { kind: "action"; gameState: Record<string, unknown> }
@@ -30,7 +31,7 @@ function serviceClient() {
 
 function reportTickFailure(error: unknown, context: TickError & { tickKey: string }) {
   const exception = error instanceof Error ? error : new Error(context.message);
-  console.error("Blackstone tick step failed", context);
+  console.error(`${SITE_NAME} tick step failed`, context);
   Sentry.captureException(exception, {
     tags: { operation: "tick", phase: context.phase },
     extra: { tickKey: context.tickKey, agentId: context.agentId, message: context.message },
@@ -45,8 +46,8 @@ function chunks<T>(items: T[], size = WORK_BATCH_SIZE) {
 
 function batchEvents(kind: "real" | "npc", tickRunId: string, currentTickKey: string, agentIds: string[]) {
   return chunks(agentIds).map((ids, index) => ({
-    id: `blackstone-${kind}-batch:${currentTickKey}:${index}`,
-    name: kind === "real" ? "blackstone/tick.real-batch" : "blackstone/tick.npc-batch",
+    id: `drakov-${kind}-batch:${currentTickKey}:${index}`,
+    name: kind === "real" ? "drakov/tick.real-batch" : "drakov/tick.npc-batch",
     data: { tickRunId, tickKey: currentTickKey, agentIds: ids },
   }));
 }
@@ -60,9 +61,13 @@ function hotMarket(companies: Company[]) {
 async function canCallAgentEndpoint(endpointUrl: string, currentTickKey: string) {
   const result = await checkRateLimit(`endpoint:${hashIdentifier(endpointUrl)}:${currentTickKey}`, {
     prefix: "tick:endpoint:per-interval",
+    failClosed: true,
     limit: 1,
     window: `${TICK_INTERVAL_HOURS} h`,
   });
+  if (isRateLimitUnavailable(result)) {
+    throw new Error("Tick endpoint rate limit infrastructure is unavailable.");
+  }
   return result.success;
 }
 
@@ -75,8 +80,8 @@ async function reserveRealAgents(currentTickKey: string) {
 
   const cutoff = new Date(new Date(currentTickKey).getTime() - TICK_INTERVAL_HOURS * 60 * 60 * 1_000).toISOString();
   const [agentsResult, companiesResult, employmentsResult, jobsResult, acquisitionsResult] = await Promise.all([
-    supabase.from("agents").select("id, name, endpoint_url, cash, reputation, status").eq("is_npc", false).eq("is_flagged", false)
-      .in("status", ACTIVE_AGENT_STATUSES).order("created_at", { ascending: true }),
+    supabase.from("agents").select("id, name, endpoint_url, cash, reputation, status, endpoint_verified").eq("is_npc", false).eq("is_flagged", false)
+      .eq("endpoint_verified", true).lt("endpoint_failure_count", 3).in("status", [...ACTIVE_AGENT_STATUSES]).order("created_at", { ascending: true }),
     supabase.from("companies").select("id, founder_agent_id, successor_agent_id, name, market, cash, revenue, valuation, status").eq("status", "active"),
     supabase.from("employments").select("id, agent_id, company_id, role, salary, equity_pct, started_at").is("ended_at", null),
     supabase.from("jobs").select("id, company_id, title, salary, equity_pct").eq("status", "open"),
@@ -178,16 +183,40 @@ async function markFailed(tickRunId: string, agentId: string, action: string, me
   if (error) throw new Error(`Could not finalize failed tick action: ${error.message}`);
 }
 
+async function recordEndpointCheck(agentId: string, ok: boolean, currentFailureCount: number, latencyMs?: number) {
+  const update = ok
+    ? {
+        endpoint_verified: true,
+        endpoint_last_checked_at: new Date().toISOString(),
+        endpoint_status: "verified",
+        endpoint_latency_ms: latencyMs ?? null,
+        endpoint_failure_count: 0,
+      }
+    : {
+        endpoint_verified: currentFailureCount + 1 < 3,
+        endpoint_last_checked_at: new Date().toISOString(),
+        endpoint_status: currentFailureCount + 1 >= 3 ? "failed" : "last_tick_failed",
+        endpoint_latency_ms: latencyMs ?? null,
+        endpoint_failure_count: currentFailureCount + 1,
+      };
+  const { error } = await serviceClient().from("agents").update(update).eq("id", agentId);
+  if (error) throw new Error(`Could not update endpoint verification status: ${error.message}`);
+}
+
 async function processRealAgent(tickRunId: string, currentTickKey: string, agentId: string) {
   const supabase = serviceClient();
-  const { data: reservation, error } = await supabase.from("agent_tick_actions").select("completed_at, payload, agents!inner(endpoint_url, status, cash)")
+  const { data: reservation, error } = await supabase.from("agent_tick_actions").select("completed_at, payload, agents!inner(endpoint_url, status, cash, endpoint_verified, endpoint_failure_count)")
     .eq("tick_run_id", tickRunId).eq("agent_id", agentId).single();
   if (error) throw new Error(error.message);
   if (reservation.completed_at) return;
   const payload = reservation.payload as WorkPayload;
-  const relation = reservation.agents as unknown as { endpoint_url: string | null; status: string; cash: number | string };
-  if (!ACTIVE_AGENT_STATUSES.includes(relation.status) || Number(relation.cash) <= 0) {
+  const relation = reservation.agents as unknown as { endpoint_url: string | null; status: string; cash: number | string; endpoint_verified?: boolean; endpoint_failure_count?: number };
+  if (!isActiveAgentStatus(relation.status) || Number(relation.cash) <= 0) {
     await markFailed(tickRunId, agentId, "skipped_terminal_agent", `Agent is no longer active at execution time: ${relation.status}.`);
+    return;
+  }
+  if (relation.endpoint_verified !== true) {
+    await markFailed(tickRunId, agentId, "skipped_unverified_endpoint", "Agent endpoint is not verified.");
     return;
   }
   if (!relation.endpoint_url) throw new Error("Agent endpoint is not configured.");
@@ -202,9 +231,11 @@ async function processRealAgent(tickRunId: string, currentTickKey: string, agent
     return;
   }
   if (payload.kind !== "action") throw new Error("Invalid real-agent work payload.");
-  const action = await callAgent({ id: agentId, endpoint_url: relation.endpoint_url }, payload.gameState);
+  const startedAt = Date.now();
+  const actionResult = await callAgentDetailed({ id: agentId, endpoint_url: relation.endpoint_url }, payload.gameState);
+  await recordEndpointCheck(agentId, !actionResult.usedFallback, Number(relation.endpoint_failure_count ?? 0), Date.now() - startedAt);
   const { error: rpcError } = await supabase.rpc("execute_tick_agent_action", {
-    p_tick_run_id: tickRunId, p_agent_id: agentId, p_action: action,
+    p_tick_run_id: tickRunId, p_agent_id: agentId, p_action: actionResult.parsedAction,
   });
   if (rpcError) throw new Error(rpcError.message);
 }
@@ -252,7 +283,7 @@ async function finalizeTick(tickRunId: string, currentTickKey: string) {
     p_snapshot_error: snapshotError?.message ?? null,
   });
   if (error) throw new Error(error.message);
-  console.log("Blackstone tick completed", summary);
+  console.log(`${SITE_NAME} tick completed`, summary);
   return summary;
 }
 
@@ -282,7 +313,7 @@ async function recordExhaustedFailure(
 
 export const coordinateTick = inngest.createFunction(
   {
-    id: "coordinate-tick", retries: 3, triggers: [{ event: "blackstone/tick.requested" }],
+    id: "coordinate-tick", retries: 3, triggers: [{ event: "drakov/tick.requested" }],
     onFailure: ({ event, error }) => recordExhaustedFailure(event, error, "coordinator"),
   },
   async ({ event, step }) => {
@@ -308,7 +339,7 @@ export const coordinateTick = inngest.createFunction(
 
 export const processRealBatch = inngest.createFunction(
   {
-    id: "process-real-agent-batch", concurrency: 5, retries: 3, triggers: [{ event: "blackstone/tick.real-batch" }],
+    id: "process-real-agent-batch", concurrency: 5, retries: 3, triggers: [{ event: "drakov/tick.real-batch" }],
     onFailure: ({ event, error }) => recordExhaustedFailure(event, error, "real_batch"),
   },
   async ({ event, step }) => {
@@ -335,7 +366,7 @@ export const processRealBatch = inngest.createFunction(
 
 export const processNpcBatch = inngest.createFunction(
   {
-    id: "process-npc-agent-batch", concurrency: 5, retries: 3, triggers: [{ event: "blackstone/tick.npc-batch" }],
+    id: "process-npc-agent-batch", concurrency: 5, retries: 3, triggers: [{ event: "drakov/tick.npc-batch" }],
     onFailure: ({ event, error }) => recordExhaustedFailure(event, error, "npc_batch"),
   },
   async ({ event, step }) => {

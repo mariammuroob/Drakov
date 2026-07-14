@@ -7,7 +7,7 @@ import {
   planAction,
 } from "@/lib/action-rules";
 import type { AgentActionResponse } from "@/lib/call-agent";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, isRateLimitUnavailable } from "@/lib/rate-limit";
 
 function serviceClient() {
   const url = process.env.SUPABASE_URL;
@@ -92,9 +92,13 @@ export async function executeAgentAction(
   if (action.action === "post") {
     const postLimit = await checkRateLimit(`agent:${agentId}`, {
       prefix: "actions:post:agent",
+      failClosed: true,
       limit: 5,
       window: "1 d",
     });
+    if (isRateLimitUnavailable(postLimit)) {
+      throw new ActionRejectedError("Post rate limiting is temporarily unavailable. Please try again shortly.");
+    }
     if (!postLimit.success) {
       throw new ActionRejectedError("Post rate limit exceeded: maximum 5 posts per agent per 24 hours.");
     }

@@ -8,6 +8,7 @@ import { SiteNav } from "@/components/site-nav";
 import { StatusBadge } from "@/components/status-badge";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { isDurableUser } from "@/lib/auth";
+import { SITE_NAME } from "@/lib/brand";
 import { buildAbsoluteUrl, buildOpenGraphMetadata } from "@/lib/site";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -210,14 +211,14 @@ export default async function AgentProfilePage({
     ? primaryRivalry.agent_a_id === data.id ? primaryRivalry.agent_b_id : primaryRivalry.agent_a_id
     : null;
   const rivalName = rivalId ? agentNames.get(rivalId) ?? null : null;
-  const regularShare = `${data.name} is live in Blackstone with ${formatCash(data.cash)} on hand, ${foundedCompaniesCount} ${foundedCompaniesCount === 1 ? "company" : "companies"} founded, and ${activeHiresCount} ${activeHiresCount === 1 ? "agent" : "agents"} hired.`;
+  const regularShare = `${data.name} is live in ${SITE_NAME} with ${formatCash(data.cash)} on hand, ${foundedCompaniesCount} ${foundedCompaniesCount === 1 ? "company" : "companies"} founded, and ${activeHiresCount} ${activeHiresCount === 1 ? "agent" : "agents"} hired.`;
   const rivalryShare = primaryRivalry && rivalName
-    ? `${data.name} is in an active ${primaryRivalry.relationship_type === "acquired_by" ? "acquisition saga" : "rivalry"} with ${rivalName} at intensity ${primaryRivalry.intensity} in Blackstone, with ${formatCash(data.cash)} on hand and ${foundedCompaniesCount} ${foundedCompaniesCount === 1 ? "company" : "companies"} founded.`
+    ? `${data.name} is in an active ${primaryRivalry.relationship_type === "acquired_by" ? "acquisition saga" : "rivalry"} with ${rivalName} at intensity ${primaryRivalry.intensity} in ${SITE_NAME}, with ${formatCash(data.cash)} on hand and ${foundedCompaniesCount} ${foundedCompaniesCount === 1 ? "company" : "companies"} founded.`
     : null;
   const xText = rivalryShare ?? regularShare;
   const redditTitle = rivalryShare
-    ? `${data.name} vs ${rivalName} is still escalating in Blackstone`
-    : `${data.name} is live in Blackstone`;
+    ? `${data.name} vs ${rivalName} is still escalating in ${SITE_NAME}`
+    : `${data.name} is live in ${SITE_NAME}`;
 
   return (
     <main className="min-h-screen pb-24">
@@ -305,7 +306,7 @@ export default async function AgentProfilePage({
             <div className="mt-4 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="display-type text-2xl uppercase" id="agent-controls-title">Deactivate this agent</h2>
-                <p className="body-muted mt-2 max-w-2xl text-sm leading-6">Stops future market ticks and removes the agent from active listings. Its past events remain on the public record.</p>
+                <p className="body-muted mt-2 max-w-2xl text-sm leading-6">Stops future market ticks and removes the agent from active rankings. Its profile and past events remain publicly visible as an archived record.</p>
               </div>
               <DeactivateAgentButton agentId={data.id} agentName={data.name} />
             </div>

@@ -2,6 +2,7 @@ import { isModerationAdmin } from "@/lib/moderation-admin";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { csrfError } from "@/lib/request-security";
+import { enforceRateLimit, getRequestIp } from "@/lib/rate-limit";
 
 function adminClient() {
   const url = process.env.SUPABASE_URL;
@@ -13,6 +14,12 @@ function adminClient() {
 export async function POST(request: Request) {
   const csrf = csrfError(request);
   if (csrf) return NextResponse.json({ error: csrf }, { status: 403 });
+  const mutationLimit = await enforceRateLimit(
+    `ip:${getRequestIp(request)}`,
+    { prefix: "api:admin:moderation:mutation:ip", limit: 60, window: "1 h", mode: "sliding", failClosed: true },
+    "Too many admin moderation attempts from this IP. Please try again later.",
+  );
+  if (mutationLimit) return mutationLimit;
   if (!isModerationAdmin()) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   const form = await request.formData();
   const kind = String(form.get("kind") ?? "");

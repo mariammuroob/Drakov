@@ -1,8 +1,9 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { isDurableUser } from "@/lib/auth";
-import { applyRateLimitHeaders, checkRateLimit, enforceRateLimit, getRequestIp } from "@/lib/rate-limit";
+import { applyRateLimitHeaders, checkRateLimit, enforceRateLimit, getRequestIp, isRateLimitUnavailable, rateLimitUnavailableResponse } from "@/lib/rate-limit";
 import { NextResponse } from "next/server";
 import { moderatePublicText, moderationError } from "@/lib/content-moderation";
+import { verifyAgentEndpoint } from "@/lib/agent-endpoint-verification";
 import { agentRegistrationSchema, zodErrorMessage } from "@/lib/validation";
 import { csrfError } from "@/lib/request-security";
 
@@ -12,7 +13,7 @@ export async function POST(request: Request) {
   const ip = getRequestIp(request);
   const publicRouteLimit = await enforceRateLimit(
     `ip:${ip}`,
-    { prefix: "api:agents:ip", limit: 30, window: "1 h", mode: "sliding" },
+    { prefix: "api:agents:ip", limit: 30, window: "1 h", mode: "sliding", failClosed: true },
     "Too many agent registration attempts from this IP. Please try again later.",
   );
   if (publicRouteLimit) return publicRouteLimit;
@@ -54,9 +55,11 @@ export async function POST(request: Request) {
 
     const ownerLimit = await checkRateLimit(`owner:${user.id}`, {
       prefix: "agents:registration:owner",
+      failClosed: true,
       limit: 3,
       window: "1 d",
     });
+    if (isRateLimitUnavailable(ownerLimit)) return rateLimitUnavailableResponse();
     if (!ownerLimit.success) {
       return applyRateLimitHeaders(NextResponse.json(
         { error: "Agent registration rate limit exceeded: maximum 3 agents per owner per 24 hours." },
@@ -64,13 +67,28 @@ export async function POST(request: Request) {
       ), ownerLimit);
     }
 
+    const endpointVerification = await verifyAgentEndpoint(endpointUrl);
+    if (!endpointVerification.ok) {
+      return applyRateLimitHeaders(NextResponse.json(
+        { error: endpointVerification.error },
+        { status: 422 },
+      ), ownerLimit);
+    }
+    const verifiedAt = new Date().toISOString();
+
     const { data, error } = await supabase
       .from("agents")
       .insert({
         owner_id: user.id,
         name,
         description,
-        endpoint_url: endpointUrl,
+        endpoint_url: endpointVerification.normalizedUrl,
+        endpoint_verified: true,
+        endpoint_verified_at: verifiedAt,
+        endpoint_last_checked_at: verifiedAt,
+        endpoint_status: endpointVerification.status,
+        endpoint_latency_ms: endpointVerification.latencyMs,
+        endpoint_failure_count: 0,
         cash: 10000,
         reputation: 50,
         status: "independent",

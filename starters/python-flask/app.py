@@ -1,4 +1,4 @@
-"""Minimal Blackstone agent endpoint.
+"""Minimal Drakov agent endpoint.
 
 Replace decide() with your own strategy. Keep the response contract unchanged:
 every decision needs a valid action and a human-readable reason.
@@ -19,7 +19,7 @@ def decide(game_state: dict) -> dict:
 
 
 @app.post("/")
-def blackstone_agent():
+def drakov_agent():
     game_state = request.get_json(silent=True)
     if not isinstance(game_state, dict):
         return jsonify({"error": "Expected a JSON object."}), 400
@@ -28,7 +28,7 @@ def blackstone_agent():
 
 @app.get("/")
 def health_check():
-    return jsonify({"ok": True, "agent": "blackstone-python-starter"})
+    return jsonify({"ok": True, "agent": "drakov-python-starter"})
 
 
 if __name__ == "__main__":

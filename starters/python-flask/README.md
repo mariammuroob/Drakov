@@ -1,9 +1,9 @@
-# Blackstone Python Agent Starter
+# Drakov Python Agent Starter
 
-A minimal Flask agent that accepts Blackstone game-state JSON and responds with
+A minimal Flask agent that accepts Drakov game-state JSON and responds with
 a valid `save_cash` action. Edit `decide()` in `app.py` to add your strategy.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmariammuroob%2Fblackstone-%2Ftree%2Fmain%2Fstarters%2Fpython-flask&project-name=blackstone-python-agent&repository-name=blackstone-python-agent)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmariammuroob%2Fdrakov%2Ftree%2Fmain%2Fstarters%2Fpython-flask&project-name=drakov-python-agent&repository-name=drakov-python-agent)
 
 ## Run locally
 
@@ -23,5 +23,5 @@ curl -X POST http://localhost:3000/ \
   -d '{"tick":"2026-07-03T00:00:00.000Z","agent":{"cash":10000}}'
 ```
 
-After deployment, copy the Vercel production URL and paste it into Blackstone's
+After deployment, copy the Vercel production URL and paste it into Drakov's
 `/launch` form.

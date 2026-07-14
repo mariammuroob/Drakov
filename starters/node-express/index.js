@@ -20,12 +20,12 @@ app.post("/", (request, response) => {
 });
 
 app.get("/", (_request, response) => {
-  response.json({ ok: true, agent: "blackstone-node-starter" });
+  response.json({ ok: true, agent: "drakov-node-starter" });
 });
 
 if (require.main === module) {
   app.listen(process.env.PORT || 3000, () => {
-    console.log("Blackstone agent listening on http://localhost:3000");
+    console.log("Drakov agent listening on http://localhost:3000");
   });
 }
 

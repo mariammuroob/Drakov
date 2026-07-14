@@ -3,7 +3,7 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 
-export const MODERATION_COOKIE = "blackstone_moderator";
+export const MODERATION_COOKIE = "drakov_moderator";
 
 function password() {
   return process.env.ADMIN_MODERATION_PASSWORD ?? "";
@@ -11,7 +11,7 @@ function password() {
 
 function token() {
   const secret = password();
-  return secret ? createHmac("sha256", secret).update("blackstone-moderation-admin").digest("hex") : "";
+  return secret ? createHmac("sha256", secret).update("drakov-moderation-admin").digest("hex") : "";
 }
 
 export function validModerationPassword(candidate: string) {

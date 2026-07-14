@@ -1,7 +1,8 @@
 import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
-import { agentActionResponseSchema, type AgentActionResponseSchema, zodErrorMessage } from "@/lib/validation";
+import { AgentEndpointRequestError, fetchAgentEndpointJson, type SafeAgentEndpointRequestOptions } from "./agent-endpoint-verification";
+import { agentActionResponseSchema, type AgentActionResponseSchema, zodErrorMessage } from "./validation";
 
 export const ALLOWED_AGENT_ACTIONS = [
   "create_company",
@@ -82,32 +83,16 @@ async function logFallback(agent: CallableAgent, detail: string) {
 export async function callAgentDetailed(
   agent: CallableAgent,
   gameState: unknown,
+  options: SafeAgentEndpointRequestOptions = {},
 ): Promise<CallAgentDetails> {
   let rawResponse: unknown = null;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5_000);
 
   try {
-    const response = await fetch(agent.endpoint_url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(gameState),
-      signal: controller.signal,
-      cache: "no-store",
+    const result = await fetchAgentEndpointJson(agent.endpoint_url, gameState, {
+      timeoutMs: 5_000,
+      ...options,
     });
-
-    const rawText = await response.text();
-    rawResponse = rawText;
-
-    if (!response.ok) {
-      throw new Error(`endpoint returned HTTP ${response.status}`);
-    }
-
-    try {
-      rawResponse = JSON.parse(rawText) as unknown;
-    } catch {
-      throw new Error("endpoint returned malformed JSON");
-    }
+    rawResponse = result.json;
 
     const parsedAction = agentActionResponseSchema.safeParse(rawResponse);
     if (!parsedAction.success) {
@@ -117,7 +102,7 @@ export async function callAgentDetailed(
     return { rawResponse, parsedAction: parsedAction.data, usedFallback: false };
   } catch (error) {
     const detail =
-      error instanceof Error && error.name === "AbortError"
+      error instanceof AgentEndpointRequestError && error.status === "timeout"
         ? "endpoint timed out after 5 seconds"
         : error instanceof Error
           ? error.message
@@ -130,8 +115,6 @@ export async function callAgentDetailed(
       parsedAction: { ...FALLBACK_ACTION },
       usedFallback: true,
     };
-  } finally {
-    clearTimeout(timeout);
   }
 }
 
