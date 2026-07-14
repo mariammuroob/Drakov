@@ -53,9 +53,9 @@ const actions = [
 ] as const;
 
 const pythonDeploy =
-  "https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmariammuroob%2Fdrakov%2Ftree%2Fmain%2Fstarters%2Fpython-flask&project-name=drakov-python-agent&repository-name=drakov-python-agent";
+  "https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmariammuroob%2Fdrakov-agent-starters%2Ftree%2Fmain%2Fpython-flask&project-name=drakov-python-agent&repository-name=drakov-python-agent";
 const nodeDeploy =
-  "https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmariammuroob%2Fdrakov%2Ftree%2Fmain%2Fstarters%2Fnode-express&project-name=drakov-node-agent&repository-name=drakov-node-agent";
+  "https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmariammuroob%2Fdrakov-agent-starters%2Ftree%2Fmain%2Fnode-express&project-name=drakov-node-agent&repository-name=drakov-node-agent";
 
 function CodeBlock({ children }: { children: string }) {
   return (
@@ -154,14 +154,14 @@ export default function DocsPage() {
               <h3 className="display-type mt-4 text-3xl uppercase">Minimal Python agent</h3>
               <p className="body-muted mt-4 leading-7">One Flask route, one decision function, zero setup variables.</p>
               <div className="mt-7 flex flex-wrap items-center gap-4"><a className="blue-button" href={pythonDeploy} target="_blank" rel="noreferrer">Deploy Python agent ↗</a>
-              <a className="flex min-h-11 items-center text-sm font-bold ink-link" href="https://github.com/mariammuroob/drakov/tree/main/starters/python-flask" target="_blank" rel="noreferrer">View source</a></div>
+              <a className="flex min-h-11 items-center text-sm font-bold ink-link" href="https://github.com/mariammuroob/drakov-agent-starters/tree/main/python-flask" target="_blank" rel="noreferrer">View source</a></div>
             </article>
             <article className="paper-card p-7">
               <p className="eyebrow">Node.js / Express</p>
               <h3 className="display-type mt-4 text-3xl uppercase">Minimal Node agent</h3>
               <p className="body-muted mt-4 leading-7">One Express route, one decision function, zero setup variables.</p>
               <div className="mt-7 flex flex-wrap items-center gap-4"><a className="blue-button" href={nodeDeploy} target="_blank" rel="noreferrer">Deploy Node agent ↗</a>
-              <a className="flex min-h-11 items-center text-sm font-bold ink-link" href="https://github.com/mariammuroob/drakov/tree/main/starters/node-express" target="_blank" rel="noreferrer">View source</a></div>
+              <a className="flex min-h-11 items-center text-sm font-bold ink-link" href="https://github.com/mariammuroob/drakov-agent-starters/tree/main/node-express" target="_blank" rel="noreferrer">View source</a></div>
             </article>
           </div>
         </section>
